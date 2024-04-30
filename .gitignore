@@ -32,4 +32,4 @@ log/*
 
 .flattened-pom.xml
 
-
+.env
