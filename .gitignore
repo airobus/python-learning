@@ -33,3 +33,4 @@ log/*
 .flattened-pom.xml
 
 .env
+/work/*.sql
