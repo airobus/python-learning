@@ -34,3 +34,4 @@ log/*
 
 .env
 /work/*.sql
+/work/*.txt
