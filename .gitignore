@@ -36,3 +36,4 @@ log/*
 /work/*.sql
 /work/*.txt
 /crawler/downloads
+/robus/.env
