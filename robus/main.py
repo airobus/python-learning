@@ -10,7 +10,7 @@ import os
 from dotenv import load_dotenv
 from supabase.client import Client, create_client
 
-from robus.config import AppConfig
+from config import AppConfig, PersistentConfigTest
 
 log = logging.getLogger(__name__)
 log.setLevel("INFO")
@@ -31,6 +31,9 @@ def _root():
 
 # 在应用程序启动时执行的初始化操作，方式1
 app.state.config = AppConfig()
+app.state.config.PersistentConfigTest = PersistentConfigTest
+
+print(app.state.config.PersistentConfigTest)
 
 
 # 在应用程序启动时执行的初始化操作，方式2
@@ -39,11 +42,10 @@ async def startup_event():
     # 例如，连接到数据库、加载配置、初始化缓存等
     print("print-Initializing data...")
     log.info("log-Initializing data...")
+    app.supabase = init_supabase()
 
 
 def init_supabase():
-    load_dotenv(override=True)
-
     supabase_url = os.environ.get("SUPABASE_URL")
     supabase_key = os.environ.get("SUPABASE_SERVICE_KEY")
     supabase_token = os.environ.get("SUPABASE_TOKEN")
