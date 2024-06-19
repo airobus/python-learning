@@ -31,7 +31,14 @@ from secrets import token_bytes
 BACKEND_DIR = Path(__file__).parent  # the path containing this file
 BASE_DIR = BACKEND_DIR.parent  # the path containing the backend/
 
-print(BASE_DIR)
+print(f"BASE_DIR: ", BASE_DIR)
+
+try:
+    from dotenv import load_dotenv, find_dotenv
+
+    load_dotenv(find_dotenv(str(BASE_DIR / ".env")))
+except ImportError:
+    print("dotenv not installed, skipping...")
 
 ####################################
 # LOGGING
@@ -125,3 +132,15 @@ PersistentConfigTest = PersistentConfig(
     "test.key",
     "这是测试value"
 )
+
+print(os.environ.get("SUPABASE_TOKEN", "123"))
+
+supabase_url = os.environ.get("SUPABASE_URL")
+supabase_key = os.environ.get("SUPABASE_SERVICE_KEY")
+# supabase_token = os.environ.get("SUPABASE_TOKEN")
+
+print(f"supabase_url: " + supabase_url)
+print(f"supabase_key: " + supabase_key)
+# print(f"supabase_token: " + supabase_token)
+
+SUPABASE: Client = create_client(supabase_url, supabase_key)
