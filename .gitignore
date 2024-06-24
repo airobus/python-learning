@@ -37,3 +37,4 @@ log/*
 /work/*.txt
 /crawler/downloads
 /robus/.env
+/langchain/file/
