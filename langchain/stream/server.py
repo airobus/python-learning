@@ -26,7 +26,7 @@ async def wait_done(fn: Awaitable, event: asyncio.Event):
         event.set()
 
 
-async def call_llm(question: str) -> AsyncIterable[str]:
+async def call_llm(question: str, prompt: str) -> AsyncIterable[str]:
     callback = AsyncIteratorCallbackHandler()
 
     # model = ChatOpenAI(streaming=True, verbose=True, callbacks=[callback])
@@ -54,8 +54,12 @@ async def call_llm(question: str) -> AsyncIterable[str]:
         streaming=True,
         callbacks=[callback]
     )
+    prompts = [question]
 
-    coroutine = wait_done(qw_llm.agenerate(prompts=[question]), callback.done)
+    # if prompt:
+    #     prompts.append(prompt)
+
+    coroutine = wait_done(qw_llm.agenerate(prompts=prompts), callback.done)
 
     task = asyncio.create_task(coroutine)
 
@@ -70,7 +74,7 @@ app = FastAPI()
 
 @app.post("/ask")
 def ask(body: dict):
-    return StreamingResponse(call_llm(body['question']), media_type="text/event-stream")
+    return StreamingResponse(call_llm(body['question'], body['prompt']), media_type="text/event-stream")
 
 
 @app.get("/")
