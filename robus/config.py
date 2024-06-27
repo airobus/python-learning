@@ -10,7 +10,9 @@ from bs4 import BeautifulSoup
 from typing import TypeVar, Generic, Union
 from pydantic import BaseModel
 from typing import Optional
-
+from langchain_community.llms.cloudflare_workersai import CloudflareWorkersAI
+from langchain_community.llms.tongyi import Tongyi
+from langchain_openai import ChatOpenAI
 from pathlib import Path
 import json
 import yaml
@@ -31,7 +33,7 @@ from secrets import token_bytes
 BACKEND_DIR = Path(__file__).parent  # the path containing this file
 BASE_DIR = BACKEND_DIR.parent  # the path containing the backend/
 
-print(f"BASE_DIR: ", BASE_DIR)
+# print(f"BASE_DIR: ", BASE_DIR)
 
 try:
     from dotenv import load_dotenv, find_dotenv
@@ -133,14 +135,34 @@ PersistentConfigTest = PersistentConfig(
     "这是测试value"
 )
 
-print(os.environ.get("SUPABASE_TOKEN", "123"))
+# print(os.environ.get("SUPABASE_TOKEN", "123"))
 
 supabase_url = os.environ.get("SUPABASE_URL")
 supabase_key = os.environ.get("SUPABASE_SERVICE_KEY")
 # supabase_token = os.environ.get("SUPABASE_TOKEN")
 
-print(f"supabase_url: " + supabase_url)
-print(f"supabase_key: " + supabase_key)
+# print(f"supabase_url: " + supabase_url)
+# print(f"supabase_key: " + supabase_key)
 # print(f"supabase_token: " + supabase_token)
 
 SUPABASE: Client = create_client(supabase_url, supabase_key)
+
+ms_llm = ChatOpenAI(
+    openai_api_base=os.getenv('OPENAI_API_BASE'),
+    openai_api_key=os.getenv('OPENAI_API_KEY'),
+    model_name="moonshot-v1-8k",
+    temperature=0.7,
+    streaming=True,
+)
+
+cf_llm = CloudflareWorkersAI(
+    account_id=os.getenv('CF_ACCOUNT_ID'),
+    api_token=os.getenv('CF_API_TOKEN'),
+    model='@cf/meta/llama-3-8b-instruct',
+    streaming=True,
+)
+
+qw_llm = Tongyi(
+    model='qwen2-1.5b-instruct',
+    streaming=True,
+)

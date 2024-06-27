@@ -44,22 +44,7 @@ async def wait_done(fn: Awaitable, event: asyncio.Event):
 async def call_llm(question: str, prompt: str) -> AsyncIterable[str]:
     callback = AsyncIteratorCallbackHandler()
 
-    # ms_llm = ChatOpenAI(
-    #     openai_api_base=os.getenv('OPENAI_API_BASE'),
-    #     openai_api_key=os.getenv('OPENAI_API_KEY'),
-    #     model_name="moonshot-v1-8k",
-    #     temperature=0.7,
-    #     streaming=True,
-    #     callbacks=[callback]
-    # )
 
-    # cf_llm = CloudflareWorkersAI(
-    #     account_id=os.getenv('CF_ACCOUNT_ID'),
-    #     api_token=os.getenv('CF_API_TOKEN'),
-    #     model='@cf/meta/llama-3-8b-instruct',
-    #     streaming=True,
-    #     callbacks=[callback]
-    # )
 
     qw_llm = Tongyi(
         model='qwen2-1.5b-instruct',
