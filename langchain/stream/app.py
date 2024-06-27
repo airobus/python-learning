@@ -49,6 +49,15 @@ ms_llm = ChatOpenAI(
     callbacks=[handler]
 )
 
+DASHSCOPE_API_KEY = os.getenv('DASHSCOPE_API_KEY')
+qw_llm_openai = ChatOpenAI(
+    openai_api_base=os.getenv('DASHSCOPE_API_BASE'),
+    openai_api_key=DASHSCOPE_API_KEY,
+    model_name="qwen2-1.5b-instruct",
+    temperature=0.7,
+    streaming=True,
+)
+
 
 # llm = ChatOpenAI(streaming=True, callbacks=[handler], temperature=0)
 
@@ -75,6 +84,14 @@ if __name__ == '__main__':
     message = "你是谁啊?"
     loop = asyncio.get_event_loop()
     loop.create_task(ms_llm.agenerate(messages=[[HumanMessage(content=message)]]))
+    loop.create_task(consumer())
+    loop.run_forever()
+    loop.close()
+
+if __name__ == '__main__':
+    message = "你是什么大模型?"
+    loop = asyncio.get_event_loop()
+    loop.create_task(qw_llm_openai.agenerate(messages=[[HumanMessage(content=message)]]))
     loop.create_task(consumer())
     loop.run_forever()
     loop.close()

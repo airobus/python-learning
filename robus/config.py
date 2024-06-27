@@ -166,3 +166,12 @@ qw_llm = Tongyi(
     model='qwen2-1.5b-instruct',
     streaming=True,
 )
+
+# qwen兼容openai接口
+qw_llm_openai = ChatOpenAI(
+    openai_api_base='https://dashscope.aliyuncs.com/compatible-mode/v1',
+    openai_api_key=os.getenv('DASHSCOPE_API_KEY'),
+    model_name="qwen2-1.5b-instruct",
+    temperature=0.7,
+    streaming=True,
+)
