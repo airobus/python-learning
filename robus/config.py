@@ -26,6 +26,11 @@ from langchain.chains.conversation.memory import ConversationBufferMemory, Conve
 from langchain.chains.conversation.base import ConversationChain
 from secrets import token_bytes
 from langchain.callbacks import AsyncIteratorCallbackHandler
+from langchain_community.vectorstores import SupabaseVectorStore
+from langchain_community.embeddings.cloudflare_workersai import (
+    CloudflareWorkersAIEmbeddings,
+)
+from dotenv import load_dotenv, find_dotenv
 
 # from constants import ERROR_MESSAGES
 
@@ -35,12 +40,12 @@ from langchain.callbacks import AsyncIteratorCallbackHandler
 
 BACKEND_DIR = Path(__file__).parent  # the path containing this file
 BASE_DIR = BACKEND_DIR.parent  # the path containing the backend/
+# print(f"BASE_DIR: ", BASE_DIR)  # /Users/pangmengting/Documents/workspace/python-learning
 
-# print(f"BASE_DIR: ", BASE_DIR)
+STATIC_DIR = Path(os.getenv("STATIC_DIR", BACKEND_DIR / "public")).resolve()
+# print(f"STATIC_DIR:", STATIC_DIR)
 
 try:
-    from dotenv import load_dotenv, find_dotenv
-
     load_dotenv(find_dotenv(str(BASE_DIR / ".env")))
 except ImportError:
     print("dotenv not installed, skipping...")
@@ -150,6 +155,25 @@ supabase_key = os.environ.get("SUPABASE_SERVICE_KEY")
 
 SUPABASE: Client = create_client(supabase_url, supabase_key)
 
+# @cf/baai/bge-large-en-v1.5
+# 维度是：1024
+# @cf/baai/bge-small-en-v1.5
+# 维度是：384
+embeddings = CloudflareWorkersAIEmbeddings(
+    account_id=os.getenv('CF_ACCOUNT_ID'),
+    api_token=os.getenv('CF_API_TOKEN'),
+    model_name="@cf/baai/bge-small-en-v1.5",
+)
+
+vectorstore = SupabaseVectorStore(
+    embedding=embeddings,
+    client=SUPABASE,
+    table_name="bge_small_vector",
+    query_name="bge_small_match_documents",
+)
+
+subabase_retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 3})
+
 # callback = AsyncIteratorCallbackHandler()
 
 ms_llm = ChatOpenAI(
@@ -174,7 +198,7 @@ qw_llm = Tongyi(
 
 # qwen兼容openai接口
 qw_llm_openai = ChatOpenAI(
-    openai_api_base='https://dashscope.aliyuncs.com/compatible-mode/v1',
+    openai_api_base=os.getenv('DASHSCOPE_API_BASE'),
     openai_api_key=os.getenv('DASHSCOPE_API_KEY'),
     model_name="qwen2-1.5b-instruct",
     temperature=0.7,

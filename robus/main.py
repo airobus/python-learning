@@ -12,14 +12,18 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse, StreamingResponse
 from langchain.callbacks import AsyncIteratorCallbackHandler
 from langchain_community.llms.tongyi import Tongyi
-from config import AppConfig, PersistentConfigTest
+from config import AppConfig, PersistentConfigTest, STATIC_DIR
 from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage
+from fastapi.staticfiles import StaticFiles
 
+# >>>>>>>>>>基础>>>>>>>>>>>>>>
 log = logging.getLogger(__name__)
 log.setLevel("INFO")
 
 app = FastAPI()
+
+app.mount("/public", StaticFiles(directory=STATIC_DIR), name="public")
 
 # 两种方式
 app.include_router(hello_router, prefix="/hello")
@@ -95,6 +99,12 @@ async def homepage():
     return FileResponse('public/index.html')
 
 
+# 显示的指明favicon
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return FileResponse(os.path.join(STATIC_DIR, "favicon.ico"))
+
+
 # print(app.state.config.PersistentConfigTest)
 
 
@@ -106,4 +116,4 @@ async def startup_event():
 
 
 if __name__ == "__main__":
-    uvicorn.run(host="0.0.0.0", port=9999, app=app)
+    uvicorn.run(host="127.0.0.1", port=9999, app=app)
