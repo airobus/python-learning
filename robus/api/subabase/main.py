@@ -60,7 +60,6 @@ def ask(body: dict):
 
     rag_chain = (
             {"context": (subabase_retriever | format_docs), "question": RunnablePassthrough()}
-            | RunnablePassthrough()
             | StdOutputRunnable
             | qw_llm_openai
             | StrOutputParser()
