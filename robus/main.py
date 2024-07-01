@@ -34,16 +34,22 @@ app.state.config = AppConfig()
 app.state.config.PersistentConfigTest = PersistentConfigTest
 
 
+# 在异步编程中，await关键字的作用就是等待其后的异步操作（如另一个async函数的调用或一个异步IO操作）完成，之后才会继续执行紧跟在await之后的代码。
+# 这意味着在await表达式处，当前的异步函数会暂停执行，控制权返回到事件循环，允许其他任务（如果有）在这段时间内运行。
+# 一旦等待的操作完成，该异步函数会恢复执行，从await之后的下一条语句继续。
 async def wait_done(fn: Awaitable, event: asyncio.Event):
     try:
         await fn
     except Exception as e:
         print(e)
+        # 设置事件通知等待的其他任务
         event.set()
     finally:
+        # 设置事件通知等待的其他任务
         event.set()
 
 
+# 流式输出的一种方式
 async def call_llm(question: str, prompt: str) -> AsyncIterable[str]:
     callback = AsyncIteratorCallbackHandler()
 

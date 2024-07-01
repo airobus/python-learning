@@ -21,8 +21,11 @@ from supabase.client import Client, create_client
 import markdown
 import requests
 import shutil
-
+from langchain.chains.conversation.memory import ConversationBufferMemory, ConversationSummaryMemory, \
+    ConversationBufferWindowMemory, ConversationSummaryBufferMemory
+from langchain.chains.conversation.base import ConversationChain
 from secrets import token_bytes
+from langchain.callbacks import AsyncIteratorCallbackHandler
 
 # from constants import ERROR_MESSAGES
 
@@ -147,6 +150,8 @@ supabase_key = os.environ.get("SUPABASE_SERVICE_KEY")
 
 SUPABASE: Client = create_client(supabase_url, supabase_key)
 
+# callback = AsyncIteratorCallbackHandler()
+
 ms_llm = ChatOpenAI(
     openai_api_base=os.getenv('OPENAI_API_BASE'),
     openai_api_key=os.getenv('OPENAI_API_KEY'),
@@ -173,5 +178,7 @@ qw_llm_openai = ChatOpenAI(
     openai_api_key=os.getenv('DASHSCOPE_API_KEY'),
     model_name="qwen2-1.5b-instruct",
     temperature=0.7,
-    streaming=True,
+    streaming=True
 )
+
+conversationChain = ConversationChain(llm=qw_llm_openai, memory=ConversationBufferWindowMemory(k=2))
