@@ -47,7 +47,7 @@
             // 定义了一个名为onSubmit的方法，该方法会在用户提交问题时被调用。这里使用了async关键字，意味着这个方法是一个异步操作，可以等待如网络请求这样的耗时操作完成。
             onSubmit: async function () {
                 this.answer = '';
-                const response = await fetch("/subabase/stream/rag/ask", {
+                const response = await fetch("/subabase/add/url", {
                     method: 'POST',
                     headers: {
                         'Accept': 'application/json',
@@ -55,7 +55,7 @@
                     },
                     // 将用户输入的问题转换成JSON字符串作为请求体发送。
                     body: JSON.stringify({
-                        question: this.query,
+                        link: this.query,
                         prompt: this.prompt
                     }),
                 });

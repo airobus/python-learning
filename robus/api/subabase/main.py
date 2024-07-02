@@ -28,6 +28,11 @@ from langchain.schema.runnable import Runnable
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnableParallel
 from operator import itemgetter
+from langchain_community.document_loaders import UnstructuredURLLoader
+from langchain_community.document_loaders import WebBaseLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.vectorstores import SupabaseVectorStore
+from langchain.chains.summarize import load_summarize_chain
 
 # >>>>>>>>>>基础>>>>>>>>>>>>>>
 log = logging.getLogger(__name__)
@@ -44,9 +49,37 @@ async def subabase_homepage():
     return FileResponse(file_path)
 
 
+# 返回页面2
+@app.get("/upload")
+async def subabase_homepage():
+    file_path = Path(__file__).parent / "upload.html"
+    return FileResponse(file_path)
+
+
 @app.post("/ask")
 def ask(body: dict):
     return Response(call_llm(body['question']))
+
+
+@app.post("/add/url")
+async def loader_url(body: dict):
+    link = str(body['link']).strip()
+    loader = UnstructuredURLLoader(urls=[link])
+    docs = loader.load()
+
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=0)
+    splits = text_splitter.split_documents(docs)
+
+    # 向量化存储
+    SupabaseVectorStore.from_documents(
+        splits,
+        embeddings,
+        client=SUPABASE,
+        table_name="bge_small_vector",
+        query_name="bge_small_match_documents",
+    )
+
+    return f'分割成{len(splits)}个文档'
 
 
 # stream + rag + memory ❌ 暂时没有memory
