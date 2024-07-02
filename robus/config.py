@@ -172,7 +172,8 @@ vectorstore = SupabaseVectorStore(
     query_name="bge_small_match_documents",
 )
 
-subabase_retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 3})
+# Can be "similarity" (default), "mmr", or "similarity_score_threshold".
+subabase_retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 6})
 
 # callback = AsyncIteratorCallbackHandler()
 
@@ -201,7 +202,7 @@ qw_llm_openai = ChatOpenAI(
     openai_api_base=os.getenv('DASHSCOPE_API_BASE'),
     openai_api_key=os.getenv('DASHSCOPE_API_KEY'),
     model_name="qwen2-1.5b-instruct",
-    temperature=0.7,
+    temperature=0,
     streaming=True
 )
 

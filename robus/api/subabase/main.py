@@ -168,7 +168,10 @@ def ask(body: dict):
     question = body['question']
 
     rag_chain = (
-            {"context": (subabase_retriever | format_docs), "question": (RunnablePassthrough() | StdOutputRunnable())}
+            {
+                "context": (subabase_retriever | format_docs),
+                "question": (RunnablePassthrough() | StdOutputRunnable())
+            }
             | ChatPromptTemplate.from_template(stream_rag_prompt())
             | qw_llm_openai
             | StrOutputParser()
@@ -280,6 +283,16 @@ class StdOutputRunnable(Serializable, Runnable[Input, Input]):
         return self._call_with_config(lambda x: x, input, config)
 
 
+class StdOutputRunnableContext(Serializable, Runnable[Input, Input]):
+    @property
+    def lc_serializable(self) -> bool:
+        return True
+
+    def invoke(self, input: Dict, config: Optional[RunnableConfig] = None) -> Input:
+        print(f"Context ==> {input['context']}")
+        return self._call_with_config(lambda x: x, input, config)
+
+
 def get_history(docs):
     return {"chat_history": 'b64_images'}
 
@@ -290,7 +303,13 @@ def call_llm(question: str):
 
 
 def format_docs(docs):
-    return "\n\n".join(doc.page_content for doc in docs)
+    context = "\n\n".join(doc.page_content for doc in docs)
+    print(f"\n{'-' * 100}\n".join([f"==>Document {i + 1}:\n\n" + d.page_content for i, d in enumerate(docs)]))
+    return context
+
+
+def pretty_print_docs(docs):
+    print(f"\n{'-' * 100}\n".join([f"==>Document {i + 1}:\n\n" + d.page_content for i, d in enumerate(docs)]))
 
 
 def stream_rag_prompt():
