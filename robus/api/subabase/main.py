@@ -16,7 +16,7 @@ from typing import Dict, Any, Iterator
 from starlette.schemas import OpenAPIResponse
 from langchain_core.messages import BaseMessageChunk
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnablePassthrough
+from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.callbacks import AsyncIteratorCallbackHandler
 from langchain.schema.runnable import RunnablePassthrough, RunnableConfig
@@ -26,6 +26,7 @@ from langchain_core.runnables.utils import Input
 from langchain.schema.runnable import Runnable
 # from langchain import PromptTemplate
 from langchain_core.prompts import PromptTemplate
+from langchain_core.runnables import RunnableParallel
 
 # >>>>>>>>>>基础>>>>>>>>>>>>>>
 log = logging.getLogger(__name__)
@@ -53,13 +54,14 @@ def ask(body: dict):
     question = body['question']
 
     chat_prompt = ChatPromptTemplate.from_template(prompt())
-    chat_history = conversationChain.memory.buffer
-    partial_prompt = chat_prompt.partial(chat_history=chat_history)
-
-    prompt_chain = chat_prompt | qw_llm_openai
+    # chat_history = conversationChain.memory.buffer
+    # partial_prompt = chat_prompt.partial(chat_history=chat_history)
+    # prompt_chain = chat_prompt | qw_llm_openai
 
     rag_chain = (
-            {"context": (subabase_retriever | format_docs), "question": RunnablePassthrough()}
+            {"context": (subabase_retriever | RunnableLambda(get_history) | format_docs),
+             "question": RunnablePassthrough()}
+            | chat_prompt
             | StdOutputRunnable
             | qw_llm_openai
             | StrOutputParser()
@@ -188,6 +190,10 @@ class StdOutputRunnable(Serializable, Runnable[Input, Input]):
     def invoke(self, input: Dict, config: Optional[RunnableConfig] = None) -> Input:
         print(f"Hey, I received the name {input['name']}")
         return self._call_with_config(lambda x: x, input, config)
+
+
+def get_history(docs):
+    return {"chat_history": 'b64_images'}
 
 
 # >>>>>>>>>>方法>>>>>>>>>>>>>>>
