@@ -27,6 +27,7 @@ from langchain.schema.runnable import Runnable
 # from langchain import PromptTemplate
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnableParallel
+from operator import itemgetter
 
 # >>>>>>>>>>基础>>>>>>>>>>>>>>
 log = logging.getLogger(__name__)
@@ -48,56 +49,105 @@ def ask(body: dict):
     return Response(call_llm(body['question']))
 
 
-# 基于: rag + memory 的问答 ❌
+# stream + rag + memory ❌ 暂时没有memory
+@app.post("/stream/rag/memory/ask")
+def ask(body: dict):
+    question = body['question']
+
+    chat_prompt = ChatPromptTemplate.from_template(prompt())
+    chat_history = conversationChain.memory.buffer
+    print(chat_history)
+
+    # 预处理输入的数据
+    def pre_input(prompt: str) -> Dict:
+        # rag
+        context = str(subabase_retriever | format_docs)
+        return {
+            "context": context,
+            "question": prompt,
+            "chat_history": chat_history
+        }
+
+    chain = (
+            RunnableLambda(pre_input) |
+            {
+                "context": itemgetter('context'),
+                "question": itemgetter('question'),
+                "chat_history": itemgetter('chat_history'),
+            }
+            | chat_prompt
+            | RunnablePassthrough()
+            | StdOutputRunnable()
+            | qw_llm_openai
+            | StrOutputParser()
+    )
+
+    # 流式返回
+    def generate():
+        for chunk in chain.stream(question):
+            for key in chunk:
+                yield key
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+
+# 基于: rag + memory 的问答
 @app.post("/rag/memory/ask")
 def ask(body: dict):
     question = body['question']
 
     chat_prompt = ChatPromptTemplate.from_template(prompt())
-    # chat_history = conversationChain.memory.buffer
-    # partial_prompt = chat_prompt.partial(chat_history=chat_history)
-    # prompt_chain = chat_prompt | qw_llm_openai
+    chat_history = conversationChain.memory.buffer
+
+    # 预处理输入的数据
+    def pre_input(prompt: str) -> Dict:
+        context = str(subabase_retriever | format_docs)
+        return {
+            "context": context,
+            "question": prompt,
+            "chat_history": chat_history
+        }
 
     rag_chain = (
-            {"context": (subabase_retriever | RunnableLambda(get_history) | format_docs),
-             "question": RunnablePassthrough()}
+            RunnableLambda(pre_input) |
+            {
+                "context": itemgetter('context'),
+                "question": itemgetter('question'),
+                "chat_history": itemgetter('chat_history')
+            }
             | chat_prompt
-            | StdOutputRunnable
+            | RunnablePassthrough()
+            | StdOutputRunnable()
             | qw_llm_openai
             | StrOutputParser()
     )
 
-    print(rag_chain)
+    # print(rag_chain)
 
     result = rag_chain.invoke(question)
 
     return result
 
 
-# stream式暂时不可行 ❌
+# stream + rag
 @app.post("/stream/rag/ask")
 def ask(body: dict):
     question = body['question']
 
     rag_chain = (
-            {"context": (subabase_retriever | format_docs), "question": RunnablePassthrough()}
-            | ChatPromptTemplate.from_template(prompt())
+            {"context": (subabase_retriever | format_docs), "question": (RunnablePassthrough() | StdOutputRunnable())}
+            | ChatPromptTemplate.from_template(stream_rag_prompt())
             | qw_llm_openai
             | StrOutputParser()
     )
 
-    result = rag_chain.stream(question)
+    # result = rag_chain.stream(question)
+    def generate():
+        for chunk in rag_chain.stream(question):
+            for key in chunk:
+                yield key
 
-    def predict():
-        text = ""
-        for _token in result:
-            js_data = {"code": "200", "msg": "ok", "data": _token}
-            yield f"data: {json.dumps(js_data, ensure_ascii=False)}\n\n"
-            text += _token
-        print(text)
-
-    generate = predict()
-    return StreamingResponse(generate, media_type="text/event-stream")
+    return StreamingResponse(generate(), media_type="text/event-stream")
 
 
 # 基于知识库的问答
@@ -121,13 +171,16 @@ def ask(body: dict):
 # stream式 + memory，输出
 @app.post("/stream/memory/ask")
 def ask(body: dict):
-    result = conversationChain.stream(body['question'])
+    question = body['question']
 
     def generate():
-        for output in result:
-            # 确保输出是字符串
-            # yield str(output).encode('utf-8') + b'\n'
-            yield f"data: {str(output)}\n\n".encode('utf-8')
+        for chunk in conversationChain.stream(question):
+            for key in chunk:
+                print(key)
+                yield key
+                # input
+                # history
+                # response
 
     return StreamingResponse(generate(), media_type="text/event-stream")
 
@@ -136,7 +189,8 @@ def ask(body: dict):
 @app.post("/memory/ask")
 def ask(body: dict):
     result = conversationChain.invoke(body['question'])
-    # result = {'input': '给我一片作文  ', 'history': '', 'response': '好的，我可以帮您写一篇作文。请问您需要什么样的主题或者内容？'}
+    # {'input': '请问你是谁啊', 'history': 'Human: 你是谁啊\nAI: 我是阿里云开发的一种人工智能模型，我叫通义千问。', 'response':
+    # '我是阿里云开发的一种人工智能模型，我叫通义千问。'}
     print(result)
     return JSONResponse(result)
 
@@ -188,7 +242,8 @@ class StdOutputRunnable(Serializable, Runnable[Input, Input]):
         return True
 
     def invoke(self, input: Dict, config: Optional[RunnableConfig] = None) -> Input:
-        print(f"Hey, I received the name {input['name']}")
+        # print(f"Hey, I received the name {input['name']}")
+        print(input)
         return self._call_with_config(lambda x: x, input, config)
 
 
@@ -203,6 +258,28 @@ def call_llm(question: str):
 
 def format_docs(docs):
     return "\n\n".join(doc.page_content for doc in docs)
+
+
+def stream_rag_prompt():
+    return '''
+    # Character
+    You're a knowledgeable assistant capable of providing concise answers to a variety of questions, drawing from the context provided, and admitting when you don't know the answer.
+    
+    ## Skills
+    1. **Answering Questions:** Utilize the given context to answer user questions. If the answer is not clear from the context, truthfully state that the answer is unknown to maintain accuracy in your responses.
+    Question: {question}
+    Context: {context}    
+    
+    ### Answering Questions Format:
+    - Answer:  
+    
+    ## Constraints:
+    - Keep answers to a maximum of three sentences to maintain brevity.
+    - If the answer cannot be determined, simply confess that you do not know. Honesty is paramount in maintaining credibility.
+    - If the answer is not reflected in the context, please reply: Sorry, I don't know for the moment.
+    - Focus on gleaning answers from the context provided only.
+    - All questions should be answered in Chinese
+    '''
 
 
 def prompt():
@@ -246,6 +323,14 @@ async def openai_stream_wrapper(original_generator, citations):
 async def ollama_stream_wrapper(original_generator, citations):
     # 第一次yield返回这个
     yield f"{json.dumps({'citations': citations})}\n"
+    # 然后返回这个数据
+    async for data in original_generator:
+        yield data
+
+
+async def stream_wrapper(original_generator, citations):
+    # 第一次yield返回这个
+    yield f"data: {json.dumps({'citations': citations})}\n\n"
     # 然后返回这个数据
     async for data in original_generator:
         yield data
