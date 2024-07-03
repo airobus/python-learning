@@ -4,7 +4,7 @@ from fastapi import FastAPI
 # from config import SUPABASE
 from pathlib import Path
 import logging
-from robus.config import SUPABASE, ms_llm, cf_llm, qw_llm, qw_llm_openai, conversationChain, \
+from robus.config import SUPABASE, ms_llm, cf_llm, qw_llm, qw_llm_openai, groq_llm_openai, conversationChain, \
     vectorstore, embeddings, subabase_retriever
 from fastapi.responses import Response, StreamingResponse, JSONResponse
 from langchain.chains.conversation.memory import ConversationBufferMemory, ConversationSummaryMemory, \
@@ -173,7 +173,7 @@ def ask(body: dict):
                 "question": (RunnablePassthrough() | StdOutputRunnable())
             }
             | ChatPromptTemplate.from_template(stream_rag_prompt())
-            | qw_llm_openai
+            | groq_llm_openai
             | StrOutputParser()
     )
 

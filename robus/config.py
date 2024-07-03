@@ -210,7 +210,7 @@ qw_llm_openai = ChatOpenAI(
 groq_llm_openai = ChatOpenAI(
     openai_api_base=os.getenv('GROQ_API_BASE'),
     openai_api_key=os.getenv('GROQ_API_KEY'),
-    model_name="llama3-8b-8192",
+    model_name="llama3-70b-8192",
     temperature=0,
     streaming=True,
 )
