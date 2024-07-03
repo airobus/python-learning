@@ -206,4 +206,13 @@ qw_llm_openai = ChatOpenAI(
     streaming=True
 )
 
+# groq兼容openai接口
+groq_llm_openai = ChatOpenAI(
+    openai_api_base=os.getenv('GROQ_API_BASE'),
+    openai_api_key=os.getenv('GROQ_API_KEY'),
+    model_name="llama3-8b-8192",
+    temperature=0,
+    streaming=True,
+)
+
 conversationChain = ConversationChain(llm=qw_llm_openai, memory=ConversationBufferWindowMemory(k=2))
