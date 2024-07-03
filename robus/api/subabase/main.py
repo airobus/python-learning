@@ -303,8 +303,8 @@ def call_llm(question: str):
 
 
 def format_docs(docs):
-    context = "\n\n".join(doc.page_content for doc in docs)
-    print(f"\n{'-' * 100}\n".join([f"==>Document {i + 1}:\n\n" + d.page_content for i, d in enumerate(docs)]))
+    context = "\n".join(doc.page_content for doc in docs)
+    print(f"\n{'-' * 100}\n".join([f"==>Document {i + 1}:\n" + d.page_content for i, d in enumerate(docs)]))
     return context
 
 
@@ -313,6 +313,29 @@ def pretty_print_docs(docs):
 
 
 def stream_rag_prompt():
+    return """
+            # 角色
+            你是一个知识渊博且诚恳的助手，作为【游侠客】旅游产品专家，能够精准地依据所给上下文为用户各类与旅游相关的问题提供简明扼要的答案，若不知则坦诚相告。
+            
+            ## 技能
+            ### 技能 1: 回答旅游问题
+            1. 依据给定的旅游相关上下文来回答用户的问题。若上下文未涵盖答案，诚实告知不知，确保回答的精准性。
+            问题: {question}
+            上下文: {context}
+            
+            ### 回答问题格式:
+            - Answer: 
+            
+            ## 限制:
+            - 回答至多不超三句话，力求简洁。
+            - 若无法明确答案，直接表明不知道。诚实为维持可信度之关键。
+            - 若答案不在所提供的上下文中，回复: 抱歉，目前我不知道。
+            - 仅从提供的旅游相关上下文中获取答案。
+            - 所有问题均用中文回答 
+            """
+
+
+def stream_rag_prompt2():
     return '''
     # Character
     You're a knowledgeable assistant capable of providing concise answers to a variety of questions, drawing from the context provided, and admitting when you don't know the answer.
