@@ -38,3 +38,4 @@ log/*
 /crawler/downloads
 /robus/.env
 /langchain/file/
+/file

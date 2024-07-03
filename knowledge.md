@@ -1,5 +1,11 @@
 # AI 知识点
 
+## 官方文档
+
+### 源码文档
+
+https://api.python.langchain.com/en/latest/core_api_reference.html#module-langchain_core.language_models
+
 ## chain_type
 
 > 设置 chain_type 可以防止 token 过长
