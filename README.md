@@ -1,11 +1,7 @@
-# python-learning
+# AI 学习笔记
 
-## fastapi
+## Langchain
 
-> 官网
-> 
-> https://fastapi.tiangolo.com/tutorial/path-params/
+## LlamaIndex
 
-
-
-
+## Streamlit
