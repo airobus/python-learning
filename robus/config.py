@@ -173,7 +173,11 @@ vectorstore = SupabaseVectorStore(
 )
 
 # Can be "similarity" (default), "mmr", or "similarity_score_threshold".
-subabase_retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 6})
+subabase_retriever = vectorstore.as_retriever(search_type="similarity")
+# subabase_retriever.search_kwargs['distance_metric'] = 'cos'
+# subabase_retriever.search_kwargs['fetch_k'] = 20
+# subabase_retriever.search_kwargs['maximal_marginal_relevance'] = True
+subabase_retriever.search_kwargs['k'] = 3
 
 # callback = AsyncIteratorCallbackHandler()
 

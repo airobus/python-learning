@@ -5,6 +5,7 @@
   <!--    需要魔法才能访问-->
   <script src="https://www.crab233.cloudns.biz/proxy/cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
   <script src="https://www.crab233.cloudns.biz/proxy/cdn.tailwindcss.com/3.4.4"></script>
+  <script src="https://www.crab233.cloudns.biz/proxy/cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 
 <body>
@@ -28,9 +29,14 @@
       </button>
     </form>
   </div>
-  <div class="mt-4">
-    <p class="font-light text-lg">{{ answer }}</p>
-  </div>
+  <!--  <div class="mt-4">-->
+  <!--    <p class="font-light text-lg">{{ answer }}</p>-->
+  <!--  </div>-->
+  <div class="mt-4" v-html="answer"></div>
+  <!--  <div class="mt-4">-->
+  <!--    <p class="font-light text-lg">{{ markdownAnswer }}</p>-->
+  <!--  </div>-->
+
 </div>
 <script>
     // new Vue({ ... })：这是创建一个新的Vue实例。Vue实例是连接数据和DOM的桥梁，负责管理数据和渲染视图。
@@ -41,7 +47,8 @@
         data: {
             query: '',
             prompt: '',
-            answer: ''
+            answer: '',
+            markdownAnswer: '',
         },
         methods: {
             // 定义了一个名为onSubmit的方法，该方法会在用户提交问题时被调用。这里使用了async关键字，意味着这个方法是一个异步操作，可以等待如网络请求这样的耗时操作完成。
@@ -63,15 +70,27 @@
                 const reader = response.body.getReader();
                 // 创建一个文本解码器，用于将接收到的二进制数据转换为文本。
                 const decoder = new TextDecoder();
+                let chunks = '';
                 while (true) {
                     // 持续读取响应流中的数据，直到没有更多数据为止（done为true时）。
                     const {value, done} = await reader.read();
                     if (done) break;
 
                     // 每次读取到数据后，使用解码器将其转换为文本，并累加到answer变量中，这样就可以实时更新页面上显示的答案。
-                    this.answer += decoder.decode(value);
+                    chunks += decoder.decode(value);
+                    this.answer = chunks;
                 }
+                // 所有数据接收完毕后，解析Markdown
+                console.log('this.answer 所有数据接收完毕 ===>', this.answer)
+                // console.log('this.chunks===>',this.chunks)
+                this.markdownAnswer = this.renderMarkdown(this.answer);
+                // console.log(this.markdownAnswer)
+                //替换流式输出的内容
+                this.answer = this.markdownAnswer
             },
+            renderMarkdown: function (markdownText) {
+                return marked.parse(markdownText);
+            }
         },
     });
 </script>

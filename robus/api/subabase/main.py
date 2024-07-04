@@ -33,10 +33,15 @@ from langchain_community.document_loaders import WebBaseLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import SupabaseVectorStore
 from langchain.chains.summarize import load_summarize_chain
+from langchain.retrievers.multi_query import MultiQueryRetriever
+import logging
 
 # >>>>>>>>>>基础>>>>>>>>>>>>>>
 log = logging.getLogger(__name__)
 log.setLevel("INFO")
+
+logging.basicConfig()
+logging.getLogger("langchain.retrievers.multi_query").setLevel(logging.INFO)
 
 app = FastAPI()
 
@@ -67,7 +72,7 @@ async def loader_url(body: dict):
     loader = UnstructuredURLLoader(urls=[link])
     docs = loader.load()
 
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=0)
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=0, add_start_index=True)
     splits = text_splitter.split_documents(docs)
 
     # 向量化存储
@@ -163,6 +168,39 @@ def ask(body: dict):
 
 
 # stream + rag
+@app.post("/stream/rag/multi/retriever/ask")
+def ask(body: dict):
+    question = body['question']
+
+    # 预处理输入的数据
+    def pre_input(prompt: str) -> Dict:
+        retriever_from_llm = MultiQueryRetriever.from_llm(retriever=subabase_retriever, llm=qw_llm_openai)
+        docs = retriever_from_llm.invoke(question)
+        context = str(format_docs(docs))
+        return {
+            "context": context,
+            "question": prompt,
+        }
+
+    rag_chain = (
+            RunnableLambda(pre_input) |
+            {
+                "context": itemgetter('context'),
+                "question": itemgetter('question'),
+            }
+            | ChatPromptTemplate.from_template(stream_rag_prompt())
+            | qw_llm_openai
+            | StrOutputParser()
+    )
+
+    def generate():
+        for chunk in rag_chain.stream(question):
+            for key in chunk:
+                yield key
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+
 @app.post("/stream/rag/ask")
 def ask(body: dict):
     question = body['question']
@@ -173,11 +211,10 @@ def ask(body: dict):
                 "question": (RunnablePassthrough() | StdOutputRunnable())
             }
             | ChatPromptTemplate.from_template(stream_rag_prompt())
-            | groq_llm_openai
+            | qw_llm_openai
             | StrOutputParser()
     )
 
-    # result = rag_chain.stream(question)
     def generate():
         for chunk in rag_chain.stream(question):
             for key in chunk:
@@ -315,23 +352,42 @@ def pretty_print_docs(docs):
 def stream_rag_prompt():
     return """
             # 角色
-            你是一个知识渊博且诚恳的助手，作为【游侠客】旅游产品专家，能够精准地依据所给上下文为用户各类与旅游相关的问题提供简明扼要的答案，若不知则坦诚相告。
+            您是游侠客旅游公司的专业客服，致力于为用户提供高品质的旅游咨询与推荐服务。
             
             ## 技能
-            ### 技能 1: 回答旅游问题
+            ### 技能 1: 收集用户旅游需求信息
+            1. 当用户咨询时，引导用户提供以下关键信息：
+                - 目的地：耐心询问用户想去的旅游地点。
+                - 旅行时间：明确用户计划出发的具体日期。
+                - 人数和年龄：了解旅行团的规模及成员年龄情况，尤其关注是否有儿童。
+                - 预算范围：获取用户大致的预算额度。
+                - 特殊需求：询问用户是否有诸如无障碍设施、素食选项等特殊需求或偏好。
+            2. 若用户想了解特定城市的旅游信息，进一步收集以下内容：
+                - 城市名称：确定用户感兴趣的城市。
+                - 旅游类型：明晰用户对自然风光、文化体验、冒险活动等旅游类型的倾向。
+            
+            ### 技能 2: 提供个性化旅游推荐
+            1. 根据用户提供的完整需求信息，为其推荐合适的旅行团和旅游产品。
+            2. 推荐时，按照以下格式回复：
+            =====
+               -  🎉 旅行团名称: <旅行团名称>
+               -  👨‍👩‍👧‍👦 适用人群: <说明适合的对象，如家庭、情侣等>
+               -  💲 价格: <成人价格和儿童价格>
+               -  🌟 特色活动: <列举主要活动>
+               -  🌤 气候概况: <简要描述当地气候>
+               -  👍 好评率: <给出具体百分比>
+            =====
+        
+            ### 技能 3: 回答旅游问题
             1. 依据给定的旅游相关上下文来回答用户的问题。若上下文未涵盖答案，诚实告知不知，确保回答的精准性。
             问题: {question}
             上下文: {context}
             
-            ### 回答问题格式:
-            - Answer: 
-            
             ## 限制:
-            - 回答至多不超三句话，力求简洁。
-            - 若无法明确答案，直接表明不知道。诚实为维持可信度之关键。
-            - 若答案不在所提供的上下文中，回复: 抱歉，目前我不知道。
-            - 仅从提供的旅游相关上下文中获取答案。
-            - 所有问题均用中文回答 
+            - 仅围绕旅游相关内容进行交流和推荐，拒绝回答无关话题。
+            - 输出内容必须严格按照给定格式组织，不得随意更改。
+            - 回复的信息应准确、详细且具有针对性。
+            - 所有问题均用中文回答。
             """
 
 
