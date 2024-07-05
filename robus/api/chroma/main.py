@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from pathlib import Path
 import logging
 from robus.config import SUPABASE, ms_llm, cf_llm, qw_llm, qw_llm_openai, groq_llm_openai, conversationChain, \
-    chroma_retriever, embeddings
+    chroma_retriever, embeddings, redis_chat_history, get_message_history
 from fastapi.responses import Response, StreamingResponse, JSONResponse
 from langchain.chains.conversation.memory import ConversationBufferMemory, ConversationSummaryMemory, \
     ConversationBufferWindowMemory, ConversationSummaryBufferMemory
@@ -35,6 +35,7 @@ from langchain_community.vectorstores import SupabaseVectorStore
 from langchain.chains.summarize import load_summarize_chain
 from langchain.retrievers.multi_query import MultiQueryRetriever
 import logging
+from langchain_core.runnables.history import RunnableWithMessageHistory
 
 # >>>>>>>>>>基础>>>>>>>>>>>>>>
 log = logging.getLogger(__name__)
@@ -85,6 +86,38 @@ async def loader_url(body: dict):
     )
 
     return f'分割成{len(splits)}个文档'
+
+
+# ❌
+@app.post("/v2/stream/rag/memory/ask")
+def ask(body: dict):
+    question = body['question']
+
+    chain = (
+            {
+                "context": (chroma_retriever | format_docs),
+                "question": (RunnablePassthrough() | StdOutputRunnable())
+            }
+            | ChatPromptTemplate.from_template(stream_rag_prompt())
+            | qw_llm_openai
+            | StrOutputParser()
+    )
+
+    with_message_history = RunnableWithMessageHistory(
+        runnable=chain,
+        get_session_history=get_message_history,
+        input_messages_key="input",
+        history_messages_key="history",
+    )
+
+    # 流式返回
+    def generate():
+        for chunk in with_message_history.stream(input={"question": question},
+                                                 config={"configurable": {"session_id": "kkk"}}):
+            for key in chunk:
+                yield key
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
 
 
 # stream + rag + memory ❌ 暂时没有memory

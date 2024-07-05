@@ -33,6 +33,7 @@ from langchain_community.embeddings.cloudflare_workersai import (
     CloudflareWorkersAIEmbeddings,
 )
 from dotenv import load_dotenv, find_dotenv
+from langchain_community.chat_message_histories import RedisChatMessageHistory
 
 # from constants import ERROR_MESSAGES
 
@@ -66,7 +67,7 @@ else:
 
 log = logging.getLogger(__name__)
 
-DATA_DIR = Path(os.getenv("DATA_DIR", BACKEND_DIR / "data")).resolve()
+DATA_DIR = Path(os.getenv("DATA_DIR", BASE_DIR / "data")).resolve()
 # /Users/pangmengting/Documents/workspace/python-learning/robus/data
 # print(f"==>>DATA_DIR:{DATA_DIR}")
 
@@ -225,7 +226,7 @@ groq_llm_openai = ChatOpenAI(
 
 conversationChain = ConversationChain(llm=qw_llm_openai, memory=ConversationBufferWindowMemory(k=2))
 
-# /Users/pangmengting/Documents/workspace/python-learning/robus/data
+# /Users/pangmengting/Documents/workspace/python-learning/data
 CHROMA_DATA_PATH = f"{DATA_DIR}/chroma_vector_db"
 # CHROMA_CLIENT = chromadb.PersistentClient(
 #     path=CHROMA_DATA_PATH,
@@ -237,3 +238,11 @@ vectordb = Chroma(collection_name=collection_name,
                   persist_directory=CHROMA_DATA_PATH,
                   embedding_function=embeddings)
 chroma_retriever = vectordb.as_retriever()
+
+REDIS_URL = "redis://192.168.22.238:6379/0"
+session_id = "robus"
+redis_chat_history = RedisChatMessageHistory(session_id, url=REDIS_URL)
+
+
+def get_message_history(session_id: str) -> RedisChatMessageHistory:
+    return RedisChatMessageHistory(session_id, url=REDIS_URL)
