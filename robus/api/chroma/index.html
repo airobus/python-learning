@@ -1,0 +1,100 @@
+<html>
+
+<head>
+  <title>Streaming Chat For YXK</title>
+  <!--    需要魔法才能访问-->
+  <script src="https://www.crab233.cloudns.biz/proxy/cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+  <script src="https://www.crab233.cloudns.biz/proxy/cdn.tailwindcss.com/3.4.4"></script>
+  <script src="https://www.crab233.cloudns.biz/proxy/cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+
+<body>
+<div id="app" class="max-w-xl mx-auto">
+  <h1 class="text-4xl my-10">Streaming Chat</h1>
+  <div>
+    <!--  @submit.prevent 是Vue的事件监听器语法，当表单被提交时，它会调用Vue实例中的 onSubmit 方法，并阻止表单默认的提交行为（页面刷新）。-->
+    <form @submit.prevent="onSubmit">
+      <input
+        class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+        v-model="query" type="text" name="question" placeholder="Type your question here"/>
+      <!--  v-model="query" 是Vue的双向数据绑定指令，意味着输入框的内容会自动与Vue实例中的 query 数据属性保持同步。name-->
+      <!-- 添加新的输入框 -->
+      <input
+        class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 mt-2"
+        v-model="prompt" v-show="false" type="text" name="additionalInfo" placeholder="prompt"/>
+      <button
+        class="mt-4 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+        type="submit">Ask
+        <!--    type="submit"点击后会触发表单的提交事件，进而执行 onSubmit 方法。-->
+      </button>
+    </form>
+  </div>
+  <!--  <div class="mt-4">-->
+  <!--    <p class="font-light text-lg">{{ answer }}</p>-->
+  <!--  </div>-->
+  <div class="mt-4" v-html="answer"></div>
+  <!--  <div class="mt-4">-->
+  <!--    <p class="font-light text-lg">{{ markdownAnswer }}</p>-->
+  <!--  </div>-->
+
+</div>
+<script>
+    // new Vue({ ... })：这是创建一个新的Vue实例。Vue实例是连接数据和DOM的桥梁，负责管理数据和渲染视图。
+    new Vue({
+        // 根据el: '#app'，我们可以推测在HTML文件中有一个元素（比如<div id="app">...</div>），这个元素就是Vue实例挂载的“应用”区域。
+        el: '#app',
+        // data: { query: '', answer: '' }：定义了两个数据属性，query用于存储用户的输入（问题），而answer用于存储从服务器接收到的回答
+        data: {
+            query: '',
+            prompt: '',
+            answer: '',
+            markdownAnswer: '',
+        },
+        methods: {
+            // 定义了一个名为onSubmit的方法，该方法会在用户提交问题时被调用。这里使用了async关键字，意味着这个方法是一个异步操作，可以等待如网络请求这样的耗时操作完成。
+            onSubmit: async function () {
+                this.answer = '';
+                const response = await fetch("/chroma/stream/rag/ask", {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                    // 将用户输入的问题转换成JSON字符串作为请求体发送。
+                    body: JSON.stringify({
+                        question: this.query,
+                        prompt: this.prompt
+                    }),
+                });
+                // 获取响应体的ReadableStream读取器，允许按需读取响应数据。
+                const reader = response.body.getReader();
+                // 创建一个文本解码器，用于将接收到的二进制数据转换为文本。
+                const decoder = new TextDecoder();
+                let chunks = '';
+                while (true) {
+                    // 持续读取响应流中的数据，直到没有更多数据为止（done为true时）。
+                    const {value, done} = await reader.read();
+                    if (done) break;
+
+                    // 每次读取到数据后，使用解码器将其转换为文本，并累加到answer变量中，这样就可以实时更新页面上显示的答案。
+                    chunks += decoder.decode(value);
+                    this.answer = chunks;
+                    // console.log('\n', this.answer)
+                }
+                // 所有数据接收完毕后，解析Markdown
+                console.log('this.answer 所有数据接收完毕 ===>\n', this.answer)
+                // console.log('this.chunks===>',this.chunks)
+                this.markdownAnswer = this.renderMarkdown(this.answer);
+                // console.log(this.markdownAnswer)
+                //替换流式输出的内容
+                this.answer = this.markdownAnswer
+            },
+            renderMarkdown: function (markdownText) {
+                return marked.parse(markdownText);
+            }
+        },
+    });
+</script>
+</body>
+
+</html>

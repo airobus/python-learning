@@ -39,3 +39,5 @@ log/*
 /robus/.env
 /langchain/file/
 /file
+/data
+/langchain/vectors/chroma/.chroma-data

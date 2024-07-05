@@ -8,6 +8,8 @@ from chromadb import Settings
 from base64 import b64encode
 from bs4 import BeautifulSoup
 from typing import TypeVar, Generic, Union
+
+from langchain_chroma import Chroma
 from pydantic import BaseModel
 from typing import Optional
 from langchain_community.llms.cloudflare_workersai import CloudflareWorkersAI
@@ -65,6 +67,8 @@ else:
 log = logging.getLogger(__name__)
 
 DATA_DIR = Path(os.getenv("DATA_DIR", BACKEND_DIR / "data")).resolve()
+# /Users/pangmengting/Documents/workspace/python-learning/robus/data
+# print(f"==>>DATA_DIR:{DATA_DIR}")
 
 CONFIG_DATA = {}
 
@@ -220,3 +224,16 @@ groq_llm_openai = ChatOpenAI(
 )
 
 conversationChain = ConversationChain(llm=qw_llm_openai, memory=ConversationBufferWindowMemory(k=2))
+
+# /Users/pangmengting/Documents/workspace/python-learning/robus/data
+CHROMA_DATA_PATH = f"{DATA_DIR}/chroma_vector_db"
+# CHROMA_CLIENT = chromadb.PersistentClient(
+#     path=CHROMA_DATA_PATH,
+#     settings=Settings(allow_reset=True, anonymized_telemetry=False),
+# )
+
+collection_name = 'yxk-robus-index'
+vectordb = Chroma(collection_name=collection_name,
+                  persist_directory=CHROMA_DATA_PATH,
+                  embedding_function=embeddings)
+chroma_retriever = vectordb.as_retriever()

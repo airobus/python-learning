@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
+
 from public.usage import USAGE as html
 import logging
 from api.hello import router as hello_router
 from api.subabase.main import app as subabase_router
+from api.chroma.main import app as chroma_router
 import asyncio
 import uvicorn
 import os
 from typing import AsyncIterable, Awaitable
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from langchain.callbacks import AsyncIteratorCallbackHandler
 from langchain_community.llms.tongyi import Tongyi
@@ -23,6 +26,16 @@ log.setLevel("INFO")
 
 app = FastAPI()
 
+origins = ["*"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.mount("/public", StaticFiles(directory=STATIC_DIR), name="public")
 
 # 两种方式
@@ -30,6 +43,7 @@ app.include_router(hello_router, prefix="/hello")
 app.mount("/test", hello_router)
 # 核心
 app.mount("/subabase", subabase_router)
+app.mount("/chroma", chroma_router)
 
 load_dotenv(override=True)
 
