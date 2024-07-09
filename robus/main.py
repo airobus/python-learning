@@ -168,6 +168,7 @@ async def upload_file(
             f.close()
 
         f = open(file_path, "rb")
+        collection_name = 'yxk-robus-index'
         if collection_name is None:
             collection_name = calculate_sha256(f)[:63]
         f.close()
