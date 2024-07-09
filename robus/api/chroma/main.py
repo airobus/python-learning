@@ -4,6 +4,7 @@ from fastapi import FastAPI
 # from config import SUPABASE
 from pathlib import Path
 import logging
+from langchain_community.chat_message_histories import FileChatMessageHistory
 from robus.config import SUPABASE, ms_llm, cf_llm, qw_llm, qw_llm_openai, groq_llm_openai, conversationChain, \
     chroma_retriever, embeddings, redis_chat_history, get_message_history
 from fastapi.responses import Response, StreamingResponse, JSONResponse
@@ -88,36 +89,72 @@ async def loader_url(body: dict):
     return f'分割成{len(splits)}个文档'
 
 
-# ❌
 @app.post("/v2/stream/rag/memory/ask")
 def ask(body: dict):
     question = body['question']
 
-    chain = (
-            {
-                "context": (chroma_retriever | format_docs),
-                "question": (RunnablePassthrough() | StdOutputRunnable())
-            }
-            | ChatPromptTemplate.from_template(stream_rag_prompt())
+    system_prompt = (
+        "You are an assistant for question-answering tasks. "
+        "Use the following pieces of retrieved context to answer "
+        "the question. If you don't know the answer, say that you "
+        "don't know. Use three sentences maximum and keep the "
+        "answer concise."
+        "\n\n"
+        "{context}"
+        "\n\n"
+        "Previous conversation:\n{history}"
+    )
+
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", system_prompt),
+            ("human", "{input}"),
+        ]
+    )
+    # print(path) /Users/pangmengting/Documents/workspace/python-learning/robus/api
+    # memory1
+    # memory = ConversationBufferMemory(return_messages=True)
+
+    # memory2
+    path = '/Users/pangmengting/Documents/workspace/python-learning/data/history/conversation_20240709-robus.json'
+    message_history = FileChatMessageHistory(
+        file_path=path)
+    # memory = ConversationBufferMemory(chat_memory=message_history, return_messages=True)
+
+    # memory3
+    memory = ConversationBufferWindowMemory(k=2, chat_memory=message_history, return_messages=True)
+
+    rag_chain_from_docs = (
+            RunnablePassthrough.assign(
+                context=(lambda x: format_docs(x["retriever_context"])),
+                history=memory.load_memory_variables
+            )
+            | prompt
             | qw_llm_openai
             | StrOutputParser()
     )
+    retrieve_docs = (lambda x: x["input"]) | chroma_retriever
 
-    with_message_history = RunnableWithMessageHistory(
-        runnable=chain,
-        get_session_history=get_message_history,
-        input_messages_key="input",
-        history_messages_key="history",
+    chain = (
+        RunnablePassthrough.assign(retriever_context=retrieve_docs)
+        .assign(answer=rag_chain_from_docs)
+        .assign(
+            memory_update=lambda x: memory.save_context(
+                {"input": x["input"]},
+                {"output": x["answer"]}
+            )
+        )
     )
 
+    return chain.invoke({"input": question})["answer"]
     # 流式返回
-    def generate():
-        for chunk in with_message_history.stream(input={"question": question},
-                                                 config={"configurable": {"session_id": "kkk"}}):
-            for key in chunk:
-                yield key
-
-    return StreamingResponse(generate(), media_type="text/event-stream")
+    # def generate():
+    #     # Iterator[Output]:
+    #     for chunk in chain.stream({"input": question}):
+    #         for key in chunk:
+    #             yield key
+    #
+    # return StreamingResponse(generate(), media_type="text/event-stream")
 
 
 # stream + rag + memory ❌ 暂时没有memory
@@ -155,6 +192,7 @@ def ask(body: dict):
 
     # 流式返回
     def generate():
+        # Iterator[Output]:
         for chunk in chain.stream(question):
             for key in chunk:
                 yield key
@@ -227,6 +265,7 @@ def ask(body: dict):
     )
 
     def generate():
+        # Iterator[Output]:
         for chunk in rag_chain.stream(question):
             for key in chunk:
                 yield key
@@ -250,6 +289,7 @@ def ask(body: dict):
     )
 
     def generate():
+        # Iterator[Output]:
         for chunk in rag_chain.stream(question):
             for key in chunk:
                 yield key
@@ -305,6 +345,7 @@ def ask(body: dict):
 # stream式输出
 @app.post("/stream/ask")
 def ask(body: dict):
+    # Iterator[BaseMessageChunk]:
     result = qw_llm_openai.stream(body['question'])
 
     # Streaming 返回
@@ -371,6 +412,10 @@ def get_history(docs):
 # >>>>>>>>>>方法>>>>>>>>>>>>>>>
 def call_llm(question: str):
     return cf_llm.invoke(question)
+
+
+def format_docs(docs):
+    return "\n\n".join(doc.page_content for doc in docs)
 
 
 # def query_doc(
