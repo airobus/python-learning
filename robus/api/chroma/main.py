@@ -110,13 +110,13 @@ def ask(body: dict):
     # return chain.invoke({"input": question})["answer"]
     # 流式返回，经返回["answer"]的值
     def generate():
-        yield f"source：\n\n"
         # Iterator[Output]:
         for chunk in chain.stream({"input": question}):
             if "answer" in chunk:
                 # 生成包含 answer 和 retriever_context 中每个文档的 page_content 和 metadata 的字符串
-                yield f"{chunk['answer']}\n"
+                yield f"{chunk['answer']}"
             if "retriever_context" in chunk:
+                yield f"source：\n\n"
                 for index, doc in enumerate(chunk["retriever_context"]):
                     yield f"\n{doc.metadata['source']}\n"
 
