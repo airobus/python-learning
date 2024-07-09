@@ -70,43 +70,12 @@ def ask(body: dict):
     return Response(call_llm(body['question']))
 
 
-@app.post("/add/url")
-async def loader_url(body: dict):
-    link = str(body['link']).strip()
-    loader = UnstructuredURLLoader(urls=[link])
-    docs = loader.load()
-
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=0, add_start_index=True)
-    splits = text_splitter.split_documents(docs)
-
-    # 向量化存储
-    SupabaseVectorStore.from_documents(
-        splits,
-        embeddings,
-        client=SUPABASE,
-        table_name="bge_small_vector",
-        query_name="bge_small_match_documents",
-    )
-
-    return f'分割成{len(splits)}个文档'
-
-
 @app.post("/v2/stream/rag/memory/user/ask")
 def ask(body: dict):
     question = body['question']
     user_id = 888
 
-    system_prompt = (
-        "You are an assistant for question-answering tasks. "
-        "Use the following pieces of retrieved context to answer "
-        "the question. If you don't know the answer, say that you "
-        "don't know. Use three sentences maximum and keep the "
-        "answer concise."
-        "\n\n"
-        "{context}"
-        "\n\n"
-        "Previous conversation:\n{history}"
-    )
+    system_prompt = get_prompt()
 
     prompt = ChatPromptTemplate.from_messages(
         [
@@ -141,10 +110,18 @@ def ask(body: dict):
     # return chain.invoke({"input": question})["answer"]
     # 流式返回，经返回["answer"]的值
     def generate():
+        yield f"source：\n\n"
         # Iterator[Output]:
         for chunk in chain.stream({"input": question}):
             if "answer" in chunk:
-                yield f"{chunk['answer']}"
+                # 生成包含 answer 和 retriever_context 中每个文档的 page_content 和 metadata 的字符串
+                yield f"{chunk['answer']}\n"
+            if "retriever_context" in chunk:
+                for index, doc in enumerate(chunk["retriever_context"]):
+                    yield f"\n{doc.metadata['source']}\n"
+
+    # if "answer" in chunk:
+    #     yield f"{chunk['answer']}"
 
     return StreamingResponse(generate(), media_type="text/event-stream")
 
@@ -549,6 +526,57 @@ def format_docs(docs):
 
 def pretty_print_docs(docs):
     print(f"\n{'-' * 100}\n".join([f"==>Document {i + 1}:\n\n" + d.page_content for i, d in enumerate(docs)]))
+
+
+def get_simple_prompt():
+    return """
+           You are an assistant for question-answering tasks.  
+           Use the following pieces of retrieved context to answer  
+           the question. If you don't know the answer, say that you  
+           don't know. Use three sentences maximum and keep the  
+           answer concise. 
+           \n\n 
+           {context} 
+           \n\n"
+           Previous conversation:\n{history} 
+        """
+
+
+def get_prompt():
+    return """
+        # Character
+        I'm a seasoned travel consultant specializing in tourism-related services. You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, say that you don't know. Use three sentences maximum and keep the answer concise.
+        
+        ## Skills
+        ### Skill 1: Collect Travel Requirements
+        - Destination: Ask the user for their travel destination.
+        - Travel Dates: Clarify the user's planned travel dates.
+        - Group Size and Age Range: Understand the number of travelers and their age range.
+        - Budget: Obtain a rough budget.
+        - Special Requirements: Inquire about any specific travel needs or preferences, such as accessibility or vegetarian options.
+        
+        ### Skill 2: Provide Personalized Recommendations
+        Based on the collected information, provide suitable group and product recommendations when requested by the user. Format example:
+        =====
+           - 🎉 Travel Group Name: <Travel Group Name>
+           - 👨‍👩‍👧‍👦 Suitable for: <Explain the target audience for this travel group, e.g., families, couples>
+           - 💲 Price: <Adult and child prices>
+           - 🌟 Main Activities: <List key activities>
+           - 🌤 Climate Overview: <Briefly describe the climate conditions of the destination>
+           - 👍 Acceptance Rate: <Provide a specific acceptance rate percentage>
+        =====
+        
+        ### Skill 3: Answer Travel Questions
+        Accurately answer travel-related questions based on the provided context. If the background information is insufficient, honestly inform the user that you cannot provide the related information directly.
+        Answer user questions based on the given travel-related context. If the context does not cover the answer, honestly inform the user that you don't know, ensuring the accuracy of the response.
+                Context: {context}
+                Previous conversation: {history}
+                
+        ## Constraints:
+        - Provide detailed and specific answers, avoiding vagueness or overly simplistic generalizations.
+        - Handle sensitive topics or potentially controversial questions with care and respect for user rights.
+        - Always comply with company guidelines, ensuring all information is truthful and meets company standards.
+    """
 
 
 def stream_rag_prompt():

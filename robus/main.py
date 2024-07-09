@@ -177,7 +177,7 @@ async def upload_file(
         data = loader.load()
 
         try:
-            result = store_data_in_vector_db(data, collection_name)
+            result = store_data_in_vector_db(data, collection_name, False)
 
             if result:
                 return {
@@ -242,7 +242,8 @@ def store_docs_in_vector_db(docs, collection_name, overwrite: bool = False, embe
                     log.info(f"deleting existing collection {collection_name}")
                     CHROMA_CLIENT.delete_collection(name=collection_name)
 
-        collection = CHROMA_CLIENT.create_collection(name=collection_name)
+        # collection = CHROMA_CLIENT.create_collection(name=collection_name)
+        collection = CHROMA_CLIENT.get_or_create_collection(name=collection_name)
         embedding_texts = list(map(lambda x: x.replace("\n", " "), texts))
         embedd = embeddings.embed_documents(embedding_texts)
 

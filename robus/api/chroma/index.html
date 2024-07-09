@@ -16,6 +16,7 @@
     <form @submit.prevent="onSubmit">
       <input
         class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+        :style="{ width: query.length > 35 ? `${query.length * 20}px` : '500px' }"
         v-model="query" type="text" name="question" placeholder="Type your question here"/>
       <!--  v-model="query" 是Vue的双向数据绑定指令，意味着输入框的内容会自动与Vue实例中的 query 数据属性保持同步。name-->
       <!-- 添加新的输入框 -->
@@ -29,13 +30,8 @@
       </button>
     </form>
   </div>
-  <!--  <div class="mt-4">-->
-  <!--    <p class="font-light text-lg">{{ answer }}</p>-->
-  <!--  </div>-->
+
   <div class="mt-4" v-html="answer"></div>
-  <!--  <div class="mt-4">-->
-  <!--    <p class="font-light text-lg">{{ markdownAnswer }}</p>-->
-  <!--  </div>-->
 
 </div>
 <script>

@@ -41,3 +41,4 @@ log/*
 /file
 /data
 /langchain/vectors/chroma/.chroma-data
+/data/chroma_vector_db
