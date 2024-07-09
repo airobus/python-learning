@@ -47,6 +47,9 @@ BASE_DIR = BACKEND_DIR.parent  # the path containing the backend/
 
 STATIC_DIR = Path(os.getenv("STATIC_DIR", BACKEND_DIR / "public")).resolve()
 # print(f"STATIC_DIR:", STATIC_DIR)
+UPLOAD_DIR = Path(BASE_DIR / "file").resolve()
+# print(f"UPLOAD_DIR==>{UPLOAD_DIR}")
+# UPLOAD_DIR==>/Users/pangmengting/Documents/workspace/python-learning/file
 
 try:
     load_dotenv(find_dotenv(str(BASE_DIR / ".env")))
@@ -148,6 +151,15 @@ PersistentConfigTest = PersistentConfig(
     "这是测试value"
 )
 
+CHUNK_SIZE = PersistentConfig(
+    "CHUNK_SIZE", "rag.chunk_size", int(os.environ.get("CHUNK_SIZE", "1500"))
+)
+CHUNK_OVERLAP = PersistentConfig(
+    "CHUNK_OVERLAP",
+    "rag.chunk_overlap",
+    int(os.environ.get("CHUNK_OVERLAP", "100")),
+)
+
 # print(os.environ.get("SUPABASE_TOKEN", "123"))
 
 supabase_url = os.environ.get("SUPABASE_URL")
@@ -228,14 +240,15 @@ conversationChain = ConversationChain(llm=qw_llm_openai, memory=ConversationBuff
 
 # /Users/pangmengting/Documents/workspace/python-learning/data
 CHROMA_DATA_PATH = f"{DATA_DIR}/chroma_vector_db"
-# CHROMA_CLIENT = chromadb.PersistentClient(
-#     path=CHROMA_DATA_PATH,
-#     settings=Settings(allow_reset=True, anonymized_telemetry=False),
-# )
+CHROMA_CLIENT = chromadb.PersistentClient(
+    path=CHROMA_DATA_PATH,
+    settings=Settings(allow_reset=True, anonymized_telemetry=False),
+)
 
 collection_name = 'yxk-robus-index'
 vectordb = Chroma(collection_name=collection_name,
-                  persist_directory=CHROMA_DATA_PATH,
+                  # persist_directory=CHROMA_DATA_PATH,
+                  client=CHROMA_CLIENT,  # 共享同一个客户端实例
                   embedding_function=embeddings)
 chroma_retriever = vectordb.as_retriever()
 

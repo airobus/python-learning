@@ -1,0 +1,62 @@
+<html>
+<head>
+  <title>Upload File For Embedding</title>
+  <script src="https://www.crab233.cloudns.biz/proxy/cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+  <script src="https://www.crab233.cloudns.biz/proxy/cdn.tailwindcss.com/3.4.4"></script>
+</head>
+<body>
+<div id="app" class="max-w-xl mx-auto">
+  <h1 class="text-4xl my-10">Streaming Chat</h1>
+  <div>
+    <form @submit.prevent="onSubmit">
+      <!-- 新增文件上传输入 -->
+      <input
+        class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 mt-2"
+        type="file" @change="onFileChange"/>
+      <!--        type="file" @change="onFileChange" accept=".txt,.pdf,.doc,.docx"/>-->
+      <button
+        class="mt-4 text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+        type="submit">Upload
+      </button>
+    </form>
+  </div>
+  <div class="mt-4">
+    <p class="font-light text-lg">{{ answer }}</p>
+  </div>
+</div>
+<script>
+    new Vue({
+        el: '#app',
+        data: {
+            answer: '',
+            file: null
+        },
+        methods: {
+            onFileChange(e) {
+                this.file = e.target.files[0];
+            },
+            onSubmit: async function () {
+                this.answer = '';
+                const formData = new FormData();
+                if (this.file) {
+                    formData.append('file', this.file);
+                }
+
+                const response = await fetch("/upload/file", {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                while (true) {
+                    const {value, done} = await reader.read();
+                    if (done) break;
+                    this.answer += decoder.decode(value);
+                }
+            },
+        },
+    });
+</script>
+</body>
+</html>
