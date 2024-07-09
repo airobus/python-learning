@@ -3,6 +3,8 @@ from fastapi.responses import FileResponse
 from fastapi import FastAPI
 # from config import SUPABASE
 from pathlib import Path
+import json
+from langchain.schema import messages_to_dict
 import logging
 from langchain_community.chat_message_histories import FileChatMessageHistory
 from robus.config import SUPABASE, ms_llm, cf_llm, qw_llm, qw_llm_openai, groq_llm_openai, conversationChain, \
@@ -15,7 +17,7 @@ from typing import AsyncIterable, Awaitable, Iterator
 import asyncio
 from typing import Dict, Any, Iterator
 from starlette.schemas import OpenAPIResponse
-from langchain_core.messages import BaseMessageChunk
+from langchain_core.messages import BaseMessageChunk, BaseMessage
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 from langchain_core.prompts import ChatPromptTemplate
@@ -89,6 +91,64 @@ async def loader_url(body: dict):
     return f'分割成{len(splits)}个文档'
 
 
+@app.post("/v2/stream/rag/memory/user/ask")
+def ask(body: dict):
+    question = body['question']
+    user_id = 888
+
+    system_prompt = (
+        "You are an assistant for question-answering tasks. "
+        "Use the following pieces of retrieved context to answer "
+        "the question. If you don't know the answer, say that you "
+        "don't know. Use three sentences maximum and keep the "
+        "answer concise."
+        "\n\n"
+        "{context}"
+        "\n\n"
+        "Previous conversation:\n{history}"
+    )
+
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", system_prompt),
+            ("human", "{input}"),
+        ]
+    )
+    path = '/Users/pangmengting/Documents/workspace/python-learning/data/history/conversation_20240709-robus'
+    memory = get_memory(path, user_id)
+    rag_chain_from_docs = (
+            RunnablePassthrough.assign(
+                context=(lambda x: format_docs(x["retriever_context"])),
+                history=memory.load_memory_variables
+            )
+            | prompt
+            | qw_llm_openai
+            | StrOutputParser()
+    )
+    retrieve_docs = (lambda x: x["input"]) | chroma_retriever
+
+    chain = (
+        RunnablePassthrough.assign(retriever_context=retrieve_docs)
+        .assign(answer=rag_chain_from_docs)
+        .assign(
+            memory_update=lambda x: memory.save_context(
+                {"input": x["input"]},
+                {"output": x["answer"]}
+            )
+        )
+    )
+
+    # return chain.invoke({"input": question})["answer"]
+    # 流式返回，经返回["answer"]的值
+    def generate():
+        # Iterator[Output]:
+        for chunk in chain.stream({"input": question}):
+            if "answer" in chunk:
+                yield f"{chunk['answer']}"
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+
 @app.post("/v2/stream/rag/memory/ask")
 def ask(body: dict):
     question = body['question']
@@ -117,8 +177,7 @@ def ask(body: dict):
 
     # memory2
     path = '/Users/pangmengting/Documents/workspace/python-learning/data/history/conversation_20240709-robus.json'
-    message_history = FileChatMessageHistory(
-        file_path=path)
+    message_history = CustomFileChatMessageHistory(file_path=path)
     # memory = ConversationBufferMemory(chat_memory=message_history, return_messages=True)
 
     # memory3
@@ -146,15 +205,15 @@ def ask(body: dict):
         )
     )
 
-    return chain.invoke({"input": question})["answer"]
-    # 流式返回
-    # def generate():
-    #     # Iterator[Output]:
-    #     for chunk in chain.stream({"input": question}):
-    #         for key in chunk:
-    #             yield key
-    #
-    # return StreamingResponse(generate(), media_type="text/event-stream")
+    # return chain.invoke({"input": question})["answer"]
+    # 流式返回，经返回["answer"]的值
+    def generate():
+        # Iterator[Output]:
+        for chunk in chain.stream({"input": question}):
+            if "answer" in chunk:
+                yield f"{chunk['answer']}"
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
 
 
 # stream + rag + memory ❌ 暂时没有memory
@@ -383,6 +442,49 @@ def select():
 
 
 # >>>>>>>>>>类>>>>>>>>>>>>>>>
+# 创建了一个 CustomFileChatMessageHistory 类，继承自 FileChatMessageHistory。
+# 重写了 add_message 方法，在使用 json.dumps() 时添加了 ensure_ascii=False 参数，并指定了 encoding='utf-8'。这确保了中文字符被正确地编码。
+# 同样修改了 clear 方法，以保持一致性。
+# 使用这个自定义的 CustomFileChatMessageHistory 类来创建 message_history。
+class CustomFileChatMessageHistory(FileChatMessageHistory):
+    def add_message(self, message: BaseMessage) -> None:
+        """Append the message to the record in the local file"""
+        messages = messages_to_dict(self.messages)
+        messages.append(messages_to_dict([message])[0])
+        # 确保 ensure_ascii=False，才能正确展示中文
+        self.file_path.write_text(json.dumps(messages, ensure_ascii=False, indent=2), encoding='utf-8')
+
+    def clear(self) -> None:
+        """Clear all messages from the record"""
+        self.file_path.write_text(json.dumps([], ensure_ascii=False, indent=2), encoding='utf-8')
+
+
+class CustomWithUserFileChatMessageHistory(FileChatMessageHistory):
+    def __init__(self, file_path: str, user_id: str):
+        # super().__init__(file_path)
+        self.file_path = Path(f"{file_path}_{user_id}.json")
+        self.user_id = user_id
+        if not self.file_path.exists():
+            self.file_path.write_text(json.dumps([]))
+
+    def add_message(self, message):
+        messages = self.messages
+        messages.append(messages_to_dict([message])[0])
+        self.file_path.write_text(json.dumps(messages, ensure_ascii=False, indent=2), encoding='utf-8')
+
+    def clear(self):
+        self.file_path.write_text(json.dumps([]), encoding='utf-8')
+
+    @property
+    def messages(self):
+        return json.loads(self.file_path.read_text(encoding='utf-8'))
+
+
+def get_memory(file_path: str, user_id: str):
+    message_history = CustomWithUserFileChatMessageHistory(file_path, user_id)
+    return ConversationBufferWindowMemory(k=2, chat_memory=message_history, return_messages=True)
+
+
 # 自定义一个继承Runnable的类
 class StdOutputRunnable(Serializable, Runnable[Input, Input]):
     @property
@@ -414,8 +516,8 @@ def call_llm(question: str):
     return cf_llm.invoke(question)
 
 
-def format_docs(docs):
-    return "\n\n".join(doc.page_content for doc in docs)
+# def format_docs(docs):
+#     return "\n\n".join(doc.page_content for doc in docs)
 
 
 # def query_doc(

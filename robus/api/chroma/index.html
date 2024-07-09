@@ -54,7 +54,7 @@
             // 定义了一个名为onSubmit的方法，该方法会在用户提交问题时被调用。这里使用了async关键字，意味着这个方法是一个异步操作，可以等待如网络请求这样的耗时操作完成。
             onSubmit: async function () {
                 this.answer = '';
-                const response = await fetch("/chroma/v2/stream/rag/memory/ask", {
+                const response = await fetch("/chroma/v2/stream/rag/memory/user/ask", {
                     method: 'POST',
                     headers: {
                         'Accept': 'application/json',
