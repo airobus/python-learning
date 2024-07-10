@@ -2,10 +2,8 @@
 import hashlib
 import uuid
 from datetime import datetime
-
 from chromadb.utils.batch_utils import create_batches
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-
 from public.usage import USAGE as html
 import logging
 from api.hello import router as hello_router
@@ -42,6 +40,7 @@ from langchain_community.document_loaders import (
     UnstructuredPowerPointLoader,
     YoutubeLoader,
     OutlookMessageLoader,
+    JSONLoader,
 )
 
 # >>>>>>>>>>基础>>>>>>>>>>>>>>
@@ -387,11 +386,27 @@ def calculate_sha256_string(string):
     return hashed_string
 
 
-# 在应用程序启动时执行的初始化操作，方式2
-@app.on_event("startup")
-async def startup_event():
-    # 例如，连接到数据库、加载配置、初始化缓存等
-    log.info(" log-Initializing data...")
+# 在应用程序启动时执行的初始化操作，方式2 deprecated
+# @app.on_event("startup")
+# async def startup_event():
+#     # 例如，连接到数据库、加载配置、初始化缓存等
+#     log.info(" log-Initializing data...")
+# 例子：
+# from fastapi import FastAPI
+# from fastapi.middleware.lifespan import Lifespan
+# import contextlib
+#
+# async def startup():
+#     # 您的启动代码在这里（例如，连接到数据库）
+#     pass
+#
+# @asynccontextmanager
+# async def lifespan_helper(app: FastAPI):
+#     await startup()
+#     yield
+#     # 可选：在此处添加关闭代码
+#
+# app = FastAPI(lifespan=lifespan_helper)
 
 
 if __name__ == "__main__":
