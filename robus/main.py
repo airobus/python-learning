@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import hashlib
+import json
 import uuid
 from datetime import datetime
 from chromadb.utils.batch_utils import create_batches
@@ -214,7 +215,7 @@ def store_data_in_vector_db(data, collection_name, overwrite: bool = False) -> t
     docs = text_splitter.split_documents(data)
 
     if len(docs) > 0:
-        log.info(f"store_data_in_vector_db {docs}")
+        # log.info(f"store_data_in_vector_db {docs}")
         return store_docs_in_vector_db(docs, collection_name, overwrite, embeddings), None
     else:
         raise ValueError(
@@ -226,7 +227,7 @@ def store_docs_in_vector_db(docs, collection_name, overwrite: bool = False, embe
 
     texts = [doc.page_content for doc in docs]
     metadatas = [doc.metadata for doc in docs]
-    log.info(f"metadatas==> {metadatas}")
+    log.info(f"metadatas==> {json.dumps(metadatas)}")
     # ChromaDB does not like datetime formats
     # for meta-data so convert them to string.
     for metadata in metadatas:
