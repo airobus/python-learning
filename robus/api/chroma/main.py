@@ -4,16 +4,24 @@ from fastapi import FastAPI
 # from config import SUPABASE
 from pathlib import Path
 import json
+
+from langchain.retrievers import EnsembleRetriever, ContextualCompressionRetriever
 from langchain.schema import messages_to_dict
 import logging
 from langchain_community.chat_message_histories import FileChatMessageHistory
+from langchain_community.document_compressors import JinaRerank
+from langchain_community.retrievers import BM25Retriever
+from langchain_core.callbacks import CallbackManagerForRetrieverRun
+from langchain_core.documents import Document
+from langchain_core.retrievers import BaseRetriever
+
 from robus.config import SUPABASE, ms_llm, cf_llm, qw_llm, qw_llm_openai, groq_llm_openai, conversationChain, \
-    chroma_retriever, embeddings, redis_chat_history, get_message_history
+    chroma_retriever, embeddings, redis_chat_history, get_message_history, CHROMA_CLIENT
 from fastapi.responses import Response, StreamingResponse, JSONResponse
 from langchain.chains.conversation.memory import ConversationBufferMemory, ConversationSummaryMemory, \
     ConversationBufferWindowMemory, ConversationSummaryBufferMemory
 from langchain.chains.conversation.base import ConversationChain
-from typing import AsyncIterable, Awaitable, Iterator
+from typing import AsyncIterable, Awaitable, Iterator, List
 import asyncio
 from typing import Dict, Any, Iterator
 from starlette.schemas import OpenAPIResponse
@@ -69,6 +77,73 @@ async def chroma_upload():
 @app.post("/ask")
 def ask(body: dict):
     return Response(call_llm(body['question']))
+
+
+@app.post("/ensemble/bm25/chroma/retriever/ask")
+def ask(body: dict):
+    question = body['question']
+    user_id = 888
+    collection_name = 'yxk-robus-index'
+
+    system_prompt = get_prompt_en()
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", system_prompt),
+            ("human", "{input}"),
+        ]
+    )
+
+    collection = CHROMA_CLIENT.get_collection(name=collection_name)
+    documents = collection.get()
+
+    bm25_retriever = BM25Retriever.from_texts(
+        texts=documents.get("documents"),
+        metadatas=documents.get("metadatas"),
+    )
+
+    ensemble_retriever = EnsembleRetriever(
+        retrievers=[bm25_retriever, chroma_retriever], weights=[0.5, 0.5]
+    )
+
+    # compressor = JinaRerank()
+
+    # compression_retriever = ContextualCompressionRetriever(
+    #     base_compressor=compressor, base_retriever=ensemble_retriever
+    # )
+
+    retrieve_docs = (lambda x: x["input"]) | ensemble_retriever
+
+    today = datetime.date.today()
+    current_date = today.strftime("%Y%m%d")
+    path = f'/Users/pangmengting/Documents/workspace/python-learning/data/history/conversation_{current_date}'
+    memory = get_memory(path, user_id)
+    rag_chain_from_docs = (
+            RunnablePassthrough.assign(
+                context=(lambda x: format_docs(x["retriever_context"])),
+                history=memory.load_memory_variables
+            )
+            | prompt
+            | qw_llm_openai
+            | StrOutputParser()
+    )
+
+    chain = (
+        RunnablePassthrough.assign(retriever_context=retrieve_docs)
+        .assign(answer=rag_chain_from_docs)
+        .assign(
+            memory_update=lambda x: memory.save_context(
+                {"input": x["input"]},
+                {"output": x["answer"]}
+            )
+        )
+    )
+
+    def generate():
+        for chunk in chain.stream({"input": question}):
+            if "answer" in chunk:
+                yield f"{chunk['answer']}"
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
 
 
 @app.post("/v2/stream/rag/memory/user/ask")
@@ -465,6 +540,39 @@ class CustomWithUserFileChatMessageHistory(FileChatMessageHistory):
 def get_memory(file_path: str, user_id: str):
     message_history = CustomWithUserFileChatMessageHistory(file_path, user_id)
     return ConversationBufferWindowMemory(k=2, chat_memory=message_history, return_messages=True)
+
+
+class ChromaRetriever(BaseRetriever):
+    collection: Any
+    embedding_function: Any
+    top_n: int
+
+    def _get_relevant_documents(
+            self,
+            query: str,
+            *,
+            run_manager: CallbackManagerForRetrieverRun,
+    ) -> List[Document]:
+        query_embeddings = self.embedding_function(query)
+
+        results = self.collection.query(
+            query_embeddings=[query_embeddings],
+            n_results=self.top_n,
+        )
+
+        ids = results["ids"][0]
+        metadatas = results["metadatas"][0]
+        documents = results["documents"][0]
+
+        results = []
+        for idx in range(len(ids)):
+            results.append(
+                Document(
+                    metadata=metadatas[idx],
+                    page_content=documents[idx],
+                )
+            )
+        return results
 
 
 # 自定义一个继承Runnable的类
