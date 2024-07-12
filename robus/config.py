@@ -10,6 +10,7 @@ from bs4 import BeautifulSoup
 from typing import TypeVar, Generic, Union
 
 from langchain_chroma import Chroma
+from langchain_community.embeddings import DashScopeEmbeddings
 from pydantic import BaseModel
 from typing import Optional
 from langchain_community.llms.cloudflare_workersai import CloudflareWorkersAI
@@ -181,6 +182,10 @@ embeddings = CloudflareWorkersAIEmbeddings(
     api_token=os.getenv('CF_API_TOKEN'),
     model_name="@cf/baai/bge-small-en-v1.5",
 )
+# dimension：1536
+qw_embeddings = DashScopeEmbeddings(
+    model="text-embedding-v2", dashscope_api_key=os.getenv('DASHSCOPE_API_KEY')
+)
 
 vectorstore = SupabaseVectorStore(
     embedding=embeddings,
@@ -245,11 +250,11 @@ CHROMA_CLIENT = chromadb.PersistentClient(
     settings=Settings(allow_reset=True, anonymized_telemetry=False),
 )
 
-collection_name = 'yxk-robus-index'
+collection_name = 'yxk-know-index'
 vectordb = Chroma(collection_name=collection_name,
                   # persist_directory=CHROMA_DATA_PATH,
                   client=CHROMA_CLIENT,  # 共享同一个客户端实例
-                  embedding_function=embeddings)
+                  embedding_function=qw_embeddings)
 chroma_retriever = vectordb.as_retriever()
 
 REDIS_URL = "redis://192.168.22.238:6379/0"

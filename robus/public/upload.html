@@ -21,7 +21,9 @@
     </form>
   </div>
   <div class="mt-4">
-    <p class="font-light text-lg">{{ answer }}</p>
+    <!--    <p class="font-light text-lg">{{ answer }}</p>-->
+    <!--    <p class="font-light text-lg">{{ formattedAnswer }}</p>-->
+    <pre class="font-light text-lg" v-html="formattedAnswer"></pre>
   </div>
 </div>
 <script>
@@ -29,7 +31,8 @@
         el: '#app',
         data: {
             answer: '',
-            file: null
+            file: null,
+            formattedAnswer: ''
         },
         methods: {
             onFileChange(e) {
@@ -53,6 +56,15 @@
                     const {value, done} = await reader.read();
                     if (done) break;
                     this.answer += decoder.decode(value);
+                }
+                try {
+                    const jsonData = JSON.parse(this.answer);  // 先将字符串解析为 JSON 对象
+                    // this.formattedAnswer = JSON.stringify(jsonData, null, 2);  // 格式化并存储
+                    this.formattedAnswer = `<pre style="color: green;">${JSON.stringify(jsonData, null, 2)}</pre>`;
+                    console.log("formattedAnswer==>", this.formattedAnswer)
+                    this.answer = this.formattedAnswer
+                } catch (error) {
+                    console.error('无法解析为有效的 JSON 数据:', error);
                 }
             },
         },

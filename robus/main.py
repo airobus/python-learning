@@ -19,7 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from langchain.callbacks import AsyncIteratorCallbackHandler
 from config import AppConfig, PersistentConfigTest, STATIC_DIR, UPLOAD_DIR, CHROMA_CLIENT, embeddings, CHUNK_SIZE, \
-    CHUNK_OVERLAP
+    CHUNK_OVERLAP, qw_embeddings
 from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage
 from fastapi.staticfiles import StaticFiles
@@ -168,7 +168,7 @@ async def upload_file(
             f.close()
 
         f = open(file_path, "rb")
-        collection_name = 'yxk-robus-index'
+        collection_name = 'yxk-know-index'
         if collection_name is None:
             collection_name = calculate_sha256(f)[:63]
         f.close()
@@ -216,7 +216,7 @@ def store_data_in_vector_db(data, collection_name, overwrite: bool = False) -> t
 
     if len(docs) > 0:
         # log.info(f"store_data_in_vector_db {docs}")
-        return store_docs_in_vector_db(docs, collection_name, overwrite, embeddings), None
+        return store_docs_in_vector_db(docs, collection_name, overwrite, qw_embeddings), None
     else:
         raise ValueError(
             "The content provided is empty. Please ensure that there is text or data present before proceeding.")
@@ -244,19 +244,19 @@ def store_docs_in_vector_db(docs, collection_name, overwrite: bool = False, embe
 
         # collection = CHROMA_CLIENT.create_collection(name=collection_name)
         collection = CHROMA_CLIENT.get_or_create_collection(name=collection_name)
-        embedding_texts = list(map(lambda x: x.replace("\n", " "), texts))
+        # 先去除空格，再把换行变成空格
+        embedding_texts = list(map(lambda x: x.replace(" ", "").replace("\n", " "), texts))
         embedd = embeddings.embed_documents(embedding_texts)
 
         for batch in create_batches(
                 api=CHROMA_CLIENT,
-                ids=[str(uuid.uuid4()) for _ in texts],
+                ids=[str(uuid.uuid4()) for _ in embedding_texts],
                 metadatas=metadatas,
                 embeddings=embedd,
-                documents=texts,
+                documents=embedding_texts,
         ):
             # 最终向量化存储
             collection.add(*batch)
-
         return True
     except Exception as e:
         log.exception(e)

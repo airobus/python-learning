@@ -6,17 +6,20 @@ from pathlib import Path
 import json
 
 from langchain.retrievers import EnsembleRetriever, ContextualCompressionRetriever
+from langchain.retrievers.document_compressors import EmbeddingsFilter, DocumentCompressorPipeline
 from langchain.schema import messages_to_dict
 import logging
 from langchain_community.chat_message_histories import FileChatMessageHistory
 from langchain_community.document_compressors import JinaRerank
+from langchain_community.document_transformers import EmbeddingsRedundantFilter
 from langchain_community.retrievers import BM25Retriever
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from langchain_core.documents import Document
 from langchain_core.retrievers import BaseRetriever
+from langchain_text_splitters import CharacterTextSplitter
 
 from robus.config import SUPABASE, ms_llm, cf_llm, qw_llm, qw_llm_openai, groq_llm_openai, conversationChain, \
-    chroma_retriever, embeddings, redis_chat_history, get_message_history, CHROMA_CLIENT
+    chroma_retriever, embeddings, redis_chat_history, get_message_history, CHROMA_CLIENT, qw_embeddings
 from fastapi.responses import Response, StreamingResponse, JSONResponse
 from langchain.chains.conversation.memory import ConversationBufferMemory, ConversationSummaryMemory, \
     ConversationBufferWindowMemory, ConversationSummaryBufferMemory
@@ -79,11 +82,71 @@ def ask(body: dict):
     return Response(call_llm(body['question']))
 
 
+@app.post("/advance/retriever/ask")
+def ask(body: dict):
+    question = body['question']
+    user_id = 666
+    splitter = CharacterTextSplitter(chunk_size=300, chunk_overlap=0, separator=". ")
+    redundant_filter = EmbeddingsRedundantFilter(embeddings=qw_embeddings)
+    relevant_filter = EmbeddingsFilter(embeddings=qw_embeddings, similarity_threshold=0.1)
+    # DocumentCompressorPipeline： 使用 Transformer 管道的文档压缩器。
+    pipeline_compressor = DocumentCompressorPipeline(
+        transformers=[splitter, redundant_filter, relevant_filter]
+    )
+    compression_retriever = ContextualCompressionRetriever(base_compressor=pipeline_compressor,
+                                                           base_retriever=chroma_retriever)
+    retrieve_docs = (lambda x: x["input"]) | compression_retriever
+
+    chain = common(user_id, retrieve_docs)
+
+    def generate():
+        for chunk in chain.stream({"input": question}):
+            if "answer" in chunk:
+                yield f"{chunk['answer']}"
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+
+def common(user_id: str, retrieve_docs):
+    system_prompt = get_prompt_en()
+    prompts = ChatPromptTemplate.from_messages(
+        [
+            ("system", system_prompt),
+            ("human", "{input}"),
+        ]
+    )
+    today = datetime.date.today()
+    current_date = today.strftime("%Y%m%d")
+    path = f'/Users/pangmengting/Documents/workspace/python-learning/data/history/conversation_{current_date}'
+    memory = get_memory(path, user_id)
+    rag_chain_from_docs = (
+            RunnablePassthrough.assign(
+                context=(lambda x: format_docs(x["retriever_context"])),
+                history=memory.load_memory_variables
+            )
+            | prompts
+            | qw_llm_openai
+            | StrOutputParser()
+    )
+
+    chain = (
+        RunnablePassthrough.assign(retriever_context=retrieve_docs)
+        .assign(answer=rag_chain_from_docs)
+        .assign(
+            memory_update=lambda x: memory.save_context(
+                {"input": x["input"]},
+                {"output": x["answer"]}
+            )
+        )
+    )
+    return chain
+
+
 @app.post("/ensemble/bm25/chroma/retriever/ask")
 def ask(body: dict):
     question = body['question']
     user_id = 888
-    collection_name = 'yxk-robus-index'
+    collection_name = 'yxk-know-index'
 
     system_prompt = get_prompt_en()
     prompt = ChatPromptTemplate.from_messages(
@@ -392,7 +455,7 @@ def ask(body: dict):
 @app.post("/stream/rag/ask")
 def ask(body: dict):
     question = body['question']
-    # collection_name = 'yxk-robus-index'
+    # collection_name = 'yxk-know-index'
 
     rag_chain = (
             {
@@ -669,6 +732,7 @@ Budget range
 Number of travelers and group composition (e.g., family, couples, friends)
 Special needs or preferences (e.g., cuisine, outdoor activities, cultural experiences)
 Travel style (e.g., relaxed leisure, adventurous, cultural immersion)
+The complete title of the product needs to be extracted as a recommendation.
 Based on the information provided by the customer, recommend the most suitable travel product. Use the following response format:
 =====
 🏝 Travel Product Name: <Product Name>
