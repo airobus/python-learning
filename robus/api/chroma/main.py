@@ -6,7 +6,7 @@ from pathlib import Path
 import json
 
 from langchain.retrievers import EnsembleRetriever, ContextualCompressionRetriever
-from langchain.retrievers.document_compressors import EmbeddingsFilter, DocumentCompressorPipeline
+from langchain.retrievers.document_compressors import EmbeddingsFilter, DocumentCompressorPipeline, LLMChainExtractor
 from langchain.schema import messages_to_dict
 import logging
 from langchain_community.chat_message_histories import FileChatMessageHistory
@@ -157,6 +157,7 @@ def ask(body: dict):
     collection_name = 'yxk-know-index'
 
     system_prompt = get_prompt_cn()
+
     prompt = ChatPromptTemplate.from_messages(
         [
             ("system", system_prompt),
@@ -172,25 +173,28 @@ def ask(body: dict):
         metadatas=documents.get("metadatas"),
     )
 
+    # compressor = LLMChainExtractor.from_llm(qw_llm_openai)
+    # compression_retriever = ContextualCompressionRetriever(base_compressor=compressor, base_retriever=chroma_retriever)
+
     # multi_query_Retriever = MultiQueryRetriever.from_llm(retriever=chroma_retriever, llm=qw_llm_openai)
-    output_parser = CusLineListOutputParser()
-
-    QUERY_PROMPT = PromptTemplate(
-        input_variables=["question"],
-        template="""您是一个旅游类型的销售人工智能语言模型助手。您的任务是针对给定的用户问题生成3个不同版本，以便从向量数据库中检索相关文档。
-        通过从多个角度生成用户问题，您的目标是帮助用户克服基于距离的相似性搜索的一些局限性。
-        提供这些替代问题，用换行符分隔。原始问题：{question}""",
-    )
-
-    # Chain
-    multi_query_chain = QUERY_PROMPT | qw_llm_openai | output_parser
-
-    multi_query_Retriever = MultiQueryRetriever(
-        retriever=chroma_retriever, llm_chain=multi_query_chain, parser_key="lines"
-    )
+    # output_parser = CusLineListOutputParser()
+    #
+    # QUERY_PROMPT = PromptTemplate(
+    #     input_variables=["question"],
+    #     template="""您是一个旅游类型的销售人工智能语言模型助手。您的任务是针对给定的用户问题生成3个不同版本，以便从向量数据库中检索相关文档。
+    #     通过从多个角度生成用户问题，您的目标是帮助用户克服基于距离的相似性搜索的一些局限性。
+    #     提供这些替代问题，用换行符分隔。原始问题：{question}""",
+    # )
+    #
+    # # Chain
+    # multi_query_chain = QUERY_PROMPT | qw_llm_openai | output_parser
+    #
+    # multi_query_Retriever = MultiQueryRetriever(
+    #     retriever=chroma_retriever, llm_chain=multi_query_chain, parser_key="lines"
+    # )
 
     ensemble_retriever = EnsembleRetriever(
-        retrievers=[multi_query_Retriever, bm25_retriever], weights=[0.5, 0.5]
+        retrievers=[bm25_retriever, chroma_retriever], weights=[0.5, 0.5]
     )
 
     # compressor = JinaRerank()
@@ -829,13 +833,13 @@ def get_prompt_cn():
     - 有关[目的地]，最佳旅游季节是[具体季节]，您需要准备[必备物品]，同时要留意当地的文化禁忌[列举禁忌]，特色美食有[美食推荐]。
 =====
 
-### 技能 4: 提炼关键信息
-从客户的问题和上下文中，精准提取与客户相关的关键内容，例如：地点、日期、价格、产品名称等。
-
-## 核心内容信息
-上下文信息：{context}
-聊天历史: {history}
-
+### 技能 4: 使用以下在 <context></context> XML 标签内的上下文作为您学到的知识。
+<context>
+    {context}\n
+    {history}
+</context>
+鉴于上下文信息，回答查询。
+ 
 ## 限制:
 若依据现有信息无法回答客户问题，直接回复“不知道”。
 只回应与旅游相关的客户咨询，避免无关及过度的回答，不重复作答。
@@ -855,14 +859,6 @@ def get_prompt_cn():
 """
 
 
-# 🏝 旅游产品名: <产品名称>
-# 📅 出行日期: <具体出发日期>
-# 🌆 目的地: <详细目的地信息>
-# 👥 适合人群: <推荐的出行人群>
-# 🕰 行程天数: <旅程持续时间>
-# 💰 价格: <明确的产品价格，包含具体内容>
-# 💡 产品亮点: <100字内精炼概括产品特色>
-# 🎫 预订方式: <清晰的预订渠道和流程>
 def get_prompt():
     return """# Character As a seasoned travel consultant at 游侠客, I specialize in answering customer questions about 
     all aspects of travel products. My knowledge base encompasses the details of various travel products, 

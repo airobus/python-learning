@@ -207,7 +207,7 @@ ms_llm = ChatOpenAI(
     openai_api_base=os.getenv('OPENAI_API_BASE'),
     openai_api_key=os.getenv('OPENAI_API_KEY'),
     model_name="moonshot-v1-8k",
-    temperature=0.7,
+    temperature=0,
     streaming=True,
 )
 
@@ -227,7 +227,8 @@ qw_llm = Tongyi(
 qw_llm_openai = ChatOpenAI(
     openai_api_base=os.getenv('DASHSCOPE_API_BASE'),
     openai_api_key=os.getenv('DASHSCOPE_API_KEY'),
-    model_name="qwen2-1.5b-instruct",
+    # model_name="qwen2-1.5b-instruct",
+    model_name="qwen-plus",
     temperature=0,
     streaming=True
 )
