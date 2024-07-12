@@ -241,7 +241,7 @@ groq_llm_openai = ChatOpenAI(
     streaming=True,
 )
 
-conversationChain = ConversationChain(llm=qw_llm_openai, memory=ConversationBufferWindowMemory(k=5))
+conversationChain = ConversationChain(llm=qw_llm_openai, memory=ConversationBufferWindowMemory(k=2))
 
 # /Users/pangmengting/Documents/workspace/python-learning/data
 CHROMA_DATA_PATH = f"{DATA_DIR}/chroma_vector_db"
