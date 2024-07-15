@@ -1,0 +1,29 @@
+[
+  {
+    "type": "human",
+    "data": {
+      "content": "你的知识库是什么",
+      "additional_kwargs": {},
+      "response_metadata": {},
+      "type": "human",
+      "name": null,
+      "id": null,
+      "example": false
+    }
+  },
+  {
+    "type": "ai",
+    "data": {
+      "content": "我的知识库包含游侠客的旅游产品信息，例如“小众秘境·大野洼溯溪Top1，瀑布深潭”这一旅行项目。这个产品包括从杭州出发的一日游活动，集河谷溯溪、瀑布、抱石攀爬、竹林徒步等元素，适合8-60岁的参与者。行程中，游客将体验清澈的水质和美丽的自然风光，还有专业的游侠客服务人员提供随团服务。费用包括往返大巴车费和公用装备，但不包括餐食和保险，需要游客自备路餐和饮用水。此外，我还可以提供关于目的地的一般性知识、旅行建议以及退订政策等信息。如果有关于其他旅游产品的问题，我会依据提供的信息来回答。",
+      "additional_kwargs": {},
+      "response_metadata": {},
+      "type": "ai",
+      "name": null,
+      "id": null,
+      "example": false,
+      "tool_calls": [],
+      "invalid_tool_calls": [],
+      "usage_metadata": null
+    }
+  }
+]
