@@ -1,6 +1,7 @@
 [
   {
-    "model": "gpt-4",
-    "api_key": "your openai api key"
+    "model": "qwen-plus",
+    "api_key": "sk-12312313123",
+    "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1"
   }
 ]
