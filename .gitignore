@@ -38,7 +38,7 @@ log/*
 /crawler/downloads
 /robus/.env
 /langchain/file/
-#/file
-#/data
+/file
+/data
 /langchain/vectors/chroma/.chroma-data
 /data/chroma_vector_db
