@@ -11,7 +11,11 @@ UserProxyAgent 用于向 AssistantAgent 发送消息。AssistantAgent 用于向 
 
 import streamlit as st
 import asyncio
+import os
 from autogen import AssistantAgent, UserProxyAgent
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # setup page title and description
 st.set_page_config(page_title="AutoGen Chat app", page_icon="🤖", layout="wide")
@@ -57,7 +61,7 @@ selected_key = None
 # setup sidebar: models to choose from and API key input
 with st.sidebar:
     st.header("OpenAI Configuration")
-    selected_model = st.selectbox("Model", ["gpt-3.5-turbo", "gpt-4-1106-preview"], index=1)
+    selected_model = st.selectbox("Model", ["qwen-plus", "qwen2-1.5b-instruct"], index=1)
     st.markdown("Press enter to save key")
     st.markdown(
         "For more information about the models, see [here](https://platform.openai.com/docs/models/gpt-4-and-gpt-4-turbo)."
@@ -74,11 +78,12 @@ with st.container():
             st.stop()
         # setup request timeout and config list
         llm_config = {
-            "request_timeout": 600,
+            "timeout": 600,
             "config_list": [
-                {"model": selected_model, "api_key": selected_key},
+                {"model": selected_model, "api_key": os.environ.get("DASHSCOPE_API_KEY"),
+                 "base_url": os.environ.get("DASHSCOPE_API_BASE")},
             ],
-            "seed": "42",  # seed for reproducibility
+            "seed": 42,  # seed for reproducibility
             "temperature": 0,  # temperature of 0 means deterministic output
         }
         # create an AssistantAgent instance named "assistant"
@@ -90,6 +95,7 @@ with st.container():
             name="user",
             human_input_mode="NEVER",
             llm_config=llm_config,
+            code_execution_config={"use_docker": False},
             is_termination_msg=lambda x: x.get("content", "").strip().endswith("TERMINATE"),
         )
 
