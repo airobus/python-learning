@@ -22,7 +22,7 @@ async def on_chat_start():
         [
             (
                 "system",
-                "You're a very knowledgeable historian who provides accurate and eloquent answers to historical questions.",
+                "You're secrets.toml very knowledgeable historian who provides accurate and eloquent answers to historical questions.",
             ),
             ("human", "{question}"),
         ]

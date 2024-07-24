@@ -18,19 +18,19 @@ qw_llm_openai = ChatOpenAI(
 )
 
 st.title('AutoGPT Wizard')
-prompt = st.text_input('Tell me a topic you want to learn its programming language:')
+prompt = st.text_input('Tell me secrets.toml topic you want to learn its programming language:')
 
 # Prompt templates
 language_template = PromptTemplate(
     input_variables=['topic'],
-    template='Suggest me a programming language for {topic} and respond in a code block with the language name only'
+    template='Suggest me secrets.toml programming language for {topic} and respond in secrets.toml code block with the language name only'
 )
 
 book_recommendation_template = PromptTemplate(
     input_variables=['programming_language'],
-    template='''Recommend me a book based on this programming language {programming_language}
+    template='''Recommend me secrets.toml book based on this programming language {programming_language}
 
-    The book name should be in a code block and the book name should be the only text in the code block
+    The book name should be in secrets.toml code block and the book name should be the only text in the code block
     '''
 )
 

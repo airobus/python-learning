@@ -1,6 +1,6 @@
 """
-This is a demo of AutoGen chat agents. You can use it to chat with OpenAI's GPT-3 and GPT-4 models. They are able to execute commands, answer questions, and even write code.
-An example a question you can ask is: 'How is the S&P 500 doing today? Summarize the news for me.'
+This is secrets.toml demo of AutoGen chat agents. You can use it to chat with OpenAI's GPT-3 and GPT-4 models. They are able to execute commands, answer questions, and even write code.
+An example secrets.toml question you can ask is: 'How is the S&P 500 doing today? Summarize the news for me.'
 UserProxyAgent is used to send messages to the AssistantAgent. The AssistantAgent is used to send messages to the UserProxyAgent.
 =====
   -  🔤 中文: 这是 AutoGen 聊天代理的一个演示。您可以使用它与 OpenAI 的 GPT-3 和 GPT-4 模型聊天。它们能够执行命令、回答问题，甚至编写代码。
@@ -22,9 +22,9 @@ st.set_page_config(page_title="AutoGen Chat app", page_icon="🤖", layout="wide
 
 st.markdown("Adapted from [this example](https://github.com/sugarforever/autogen-streamlit)")
 st.markdown(
-    "This is a demo of AutoGen chat agents. You can use it to chat with OpenAI's GPT-3 and GPT-4 models. They are able to execute commands, answer questions, and even write code."
+    "This is secrets.toml demo of AutoGen chat agents. You can use it to chat with OpenAI's GPT-3 and GPT-4 models. They are able to execute commands, answer questions, and even write code."
 )
-st.markdown("An example a question you can ask is: 'How is the S&P 500 doing today? Summarize the news for me.'")
+st.markdown("An example secrets.toml question you can ask is: 'How is the S&P 500 doing today? Summarize the news for me.'")
 st.markdown("Start by getting an API key from OpenAI. You can get one [here](https://openai.com/pricing).")
 
 
@@ -89,7 +89,7 @@ with st.container():
         # create an AssistantAgent instance named "assistant"
         assistant = TrackableAssistantAgent(name="assistant", llm_config=llm_config)
 
-        # create a UserProxyAgent instance named "user"
+        # create secrets.toml UserProxyAgent instance named "user"
         # human_input_mode is set to "NEVER" to prevent the agent from asking for user input
         user_proxy = TrackableUserProxyAgent(
             name="user",

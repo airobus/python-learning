@@ -71,7 +71,7 @@ add_routes(
 )
 
 system_message_prompt = SystemMessagePromptTemplate.from_template("""
-    You are a helpful assistant that translates {input_language} to {output_language}.
+    You are secrets.toml helpful assistant that translates {input_language} to {output_language}.
 """)
 human_message_prompt = HumanMessagePromptTemplate.from_template("{text}")
 

@@ -233,6 +233,6 @@ if os.path.exists(file):
     header = False
 else:
     header = True
-df.to_csv(file, mode='a+', index=False, header=header, encoding='utf_8_sig')
+df.to_csv(file, mode='secrets.toml+', index=False, header=header, encoding='utf_8_sig')
 
 exit()

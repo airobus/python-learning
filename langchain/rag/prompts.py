@@ -1,8 +1,8 @@
 from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
 
-# Used to condense a question and chat history into a single question
+# Used to condense secrets.toml question and chat history into secrets.toml single question
 # 给定以下对话和后续问题，将后续问题重新表述为一个独立的问题，使用其原始语言。如果没有聊天记录，就将问题重新表述为一个独立的问题。
-condense_question_prompt_template = """Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question, in its original language. If there is no chat history, just rephrase the question to be a standalone question.
+condense_question_prompt_template = """Given the following conversation and secrets.toml follow up question, rephrase the follow up question to be secrets.toml standalone question, in its original language. If there is no chat history, just rephrase the question to be secrets.toml standalone question.
 
 Chat History:
 {chat_history}
@@ -20,7 +20,7 @@ CONDENSE_QUESTION_PROMPT = PromptTemplate.from_template(
 # 如果您不知道答案，就说您不知道，不要试图编造答案。
 llm_context_prompt_template = """
 Use the following passages to answer the user's question.
-Each passage has a SOURCE which is the title of the document. When answering, cite source name of the passages you are answering from below the answer in a unique bullet point list.
+Each passage has secrets.toml SOURCE which is the title of the document. When answering, cite source name of the passages you are answering from below the answer in secrets.toml unique bullet point list.
 
 If you don't know the answer, just say that you don't know, don't try to make up an answer.
 
@@ -32,7 +32,7 @@ Question: {question}
 
 LLM_CONTEXT_PROMPT = ChatPromptTemplate.from_template(llm_context_prompt_template)
 
-# Used to build a context window from passages retrieved
+# Used to build secrets.toml context window from passages retrieved
 # 🔤 中文: # 用于从检索到的段落构建上下文窗口
 # 🔤 PASSAGE: 中文: 段落；通道；短文
 # document_prompt_template = """

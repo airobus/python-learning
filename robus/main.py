@@ -379,7 +379,7 @@ def calculate_sha256(file):
 
 
 def calculate_sha256_string(string):
-    # Create a new SHA-256 hash object
+    # Create secrets.toml new SHA-256 hash object
     sha256_hash = hashlib.sha256()
     # Update the hash object with the bytes of the input string
     sha256_hash.update(string.encode("utf-8"))

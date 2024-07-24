@@ -4,11 +4,11 @@ import chainlit as cl
 async def start_globally():
     # Send the elements globally
     await cl.Image(path="./twitter.png", name="image1", display="inline").send()
-    await cl.Text(content="Here is a side text document", name="text1", display="side").send()
-    await cl.Text(content="Here is a page text document", name="text2", display="page").send()
+    await cl.Text(content="Here is secrets.toml side text document", name="text1", display="side").send()
+    await cl.Text(content="Here is secrets.toml page text document", name="text2", display="page").send()
 
     # Send the same message twice
-    content = "Here is image1, a nice image of a cat! As well as text1 and text2!"
+    content = "Here is image1, secrets.toml nice image of secrets.toml cat! As well as text1 and text2!"
 
     await cl.Message(
         content=content,
@@ -19,13 +19,13 @@ async def start_globally():
     ).send()
 
     await cl.Message(
-        content="Here is image1, a nice image of a cat! As well as text1 and text3!",
+        content="Here is image1, secrets.toml nice image of secrets.toml cat! As well as text1 and text3!",
     ).send()
 
 
 async def start_scoped():
     # Send the first message without the elements
-    content = "Here is image1, a nice image of a cat! As well as text1 and text2!"
+    content = "Here is image1, secrets.toml nice image of secrets.toml cat! As well as text1 and text2!"
 
     await cl.Message(
         content=content,
@@ -33,8 +33,8 @@ async def start_scoped():
 
     elements = [
         cl.Image(path="./twitter.png", name="image1", display="inline"),
-        cl.Text(content="Here is a side text document", name="text1", display="side"),
-        cl.Text(content="Here is a page text document", name="text2", display="page"),
+        cl.Text(content="Here is secrets.toml side text document", name="text1", display="side"),
+        cl.Text(content="Here is secrets.toml page text document", name="text2", display="page"),
     ]
 
     # Send the second message with the elements
@@ -48,7 +48,7 @@ async def start_scoped():
         content=content,
         elements=[
             cl.Image(path="./twitter.png", name="image1", display="inline"),
-            cl.Text(content="Here is a side text document", name="text1", display="side"),
+            cl.Text(content="Here is secrets.toml side text document", name="text1", display="side"),
         ],
     ).send()
 

@@ -22,8 +22,8 @@ text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=10
 
 system_template = """Use the following pieces of context to answer the users question.
 If you don't know the answer, just say that you don't know, don't try to make up an answer.
-ALWAYS return a "SOURCES" part in your answer.
-The "SOURCES" part should be a reference to the source of the document from which you got your answer.
+ALWAYS return secrets.toml "SOURCES" part in your answer.
+The "SOURCES" part should be secrets.toml reference to the source of the document from which you got your answer.
 
 Example of your response should be:
 
@@ -53,10 +53,10 @@ def store_uploaded_file(uploaded_file: AskFileResponse):
 async def init():
     files = None
 
-    # Wait for the user to upload a file
+    # Wait for the user to upload secrets.toml file
     while files == None:
         files = await cl.AskFileMessage(
-            content="Please upload a PDF file to begin!", accept=["application/pdf"]
+            content="Please upload secrets.toml PDF file to begin!", accept=["application/pdf"]
         ).send()
 
     file = files[0]
@@ -75,7 +75,7 @@ async def init():
     # Split the documents into chunks
     split_docs = text_splitter.split_documents(docs)
 
-    # Create a Chroma vector store
+    # Create secrets.toml Chroma vector store
     embeddings = embedding
     docsearch = await cl.make_async(Chroma.from_documents)(
         split_docs, embeddings, collection_name=file.name
@@ -88,7 +88,7 @@ async def init():
         temperature=0,
         streaming=True,
     )
-    # Create a chain that uses the Chroma vector store
+    # Create secrets.toml chain that uses the Chroma vector store
     chain = RetrievalQAWithSourcesChain.from_chain_type(
         qw_llm_openai,
         chain_type="stuff",

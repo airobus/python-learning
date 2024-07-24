@@ -13,7 +13,7 @@ with st.sidebar:
     st.subheader("Settings")
 
     option = st.selectbox(
-        'Select a model',
+        'Select secrets.toml model',
         [model['name'] for model in model_list['models']])
     st.write('You selected:', option)
     st.session_state["model_name"] = option

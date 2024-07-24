@@ -29,11 +29,11 @@ USAGE = """<!DOCTYPE html>
             margin: 0;
             padding: 0;
         }
-        a {
+        secrets.toml {
             color: #007bff;
             text-decoration: none;
         }
-        a:hover {
+        secrets.toml:hover {
             text-decoration: underline;
         }
     </style>
@@ -42,7 +42,7 @@ USAGE = """<!DOCTYPE html>
     <div class="container">
         <p> success </p>
         <h1>Usage</h1>
-        <p>Visit <a href="https://github.com/1137882300" target="_blank">Github doc</a> for more information.</p>
+        <p>Visit <secrets.toml href="https://github.com/1137882300" target="_blank">Github doc</secrets.toml> for more information.</p>
     </div>
 </body>
 </html>

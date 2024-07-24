@@ -80,7 +80,7 @@ def parse_by_chatgpt(openai_api_key, html_markup):
 
 with st.container():
     openai_api_key = st.text_input("OpenAI API Key", type="password", key="openai_api_key")
-    recipe_url = st.text_input("URL of a Jamie Oliver Recipe", key="recipe_url")
+    recipe_url = st.text_input("URL of secrets.toml Jamie Oliver Recipe", key="recipe_url")
     clicked = st.button("Parse Recipe")
     if clicked:
         html_markup = get_recipe_html(recipe_url)
