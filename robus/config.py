@@ -227,8 +227,7 @@ qw_llm = Tongyi(
 qw_llm_openai = ChatOpenAI(
     openai_api_base=os.getenv('DASHSCOPE_API_BASE'),
     openai_api_key=os.getenv('DASHSCOPE_API_KEY'),
-    # model_name="qwen2-1.5b-instruct",
-    model_name="qwen-plus",
+    model_name="qwen2-1.5b-instruct",
     temperature=0,
     streaming=True
 )
@@ -242,6 +241,14 @@ groq_llm_openai = ChatOpenAI(
     streaming=True,
 )
 
+zp_llm_openai = ChatOpenAI(
+    openai_api_base='https://open.bigmodel.cn/api/paas/v4/',
+    openai_api_key=os.getenv('ZHIPUAI_API_KEY'),
+    model_name="glm-4",
+    temperature=0,
+    streaming=True,
+)
+
 conversationChain = ConversationChain(llm=qw_llm_openai, memory=ConversationBufferWindowMemory(k=2))
 
 # /Users/pangmengting/Documents/workspace/python-learning/data
@@ -251,17 +258,17 @@ CHROMA_CLIENT = chromadb.PersistentClient(
     settings=Settings(allow_reset=True, anonymized_telemetry=False),
 )
 
-collection_name = 'yxk-know-index'
-vectordb = Chroma(collection_name=collection_name,
+fix_collection_name = 'yxk-know-index-2'
+vectordb = Chroma(collection_name=fix_collection_name,
                   # persist_directory=CHROMA_DATA_PATH,
                   client=CHROMA_CLIENT,  # 共享同一个客户端实例
                   embedding_function=qw_embeddings)
 chroma_retriever = vectordb.as_retriever()
 
-REDIS_URL = "redis://192.168.22.238:6379/0"
-session_id = "robus"
-redis_chat_history = RedisChatMessageHistory(session_id, url=REDIS_URL)
+# REDIS_URL = "redis://192.168.22.238:6379/0"
+# session_id = "robus"
+# redis_chat_history = RedisChatMessageHistory(session_id, url=REDIS_URL)
 
 
-def get_message_history(session_id: str) -> RedisChatMessageHistory:
-    return RedisChatMessageHistory(session_id, url=REDIS_URL)
+# def get_message_history(session_id: str) -> RedisChatMessageHistory:
+#     return RedisChatMessageHistory(session_id, url=REDIS_URL)

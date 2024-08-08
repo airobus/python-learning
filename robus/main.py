@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import hashlib
 import json
+import random
 import uuid
 from datetime import datetime
 from chromadb.utils.batch_utils import create_batches
@@ -19,7 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from langchain.callbacks import AsyncIteratorCallbackHandler
 from config import AppConfig, PersistentConfigTest, STATIC_DIR, UPLOAD_DIR, CHROMA_CLIENT, embeddings, CHUNK_SIZE, \
-    CHUNK_OVERLAP, qw_embeddings
+    CHUNK_OVERLAP, qw_embeddings, fix_collection_name
 from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage
 from fastapi.staticfiles import StaticFiles
@@ -160,7 +161,7 @@ async def upload_file(
         unsanitized_filename = file.filename
         filename = os.path.basename(unsanitized_filename)
 
-        file_path = f"{UPLOAD_DIR}/{filename}"
+        file_path = f"{UPLOAD_DIR}/{random.randint(10 ** 7, 10 ** 8 - 1)}-{filename}"
         print(file_path)
         contents = file.file.read()
         with open(file_path, "wb") as f:
@@ -168,7 +169,7 @@ async def upload_file(
             f.close()
 
         f = open(file_path, "rb")
-        collection_name = 'yxk-know-index'
+        collection_name = fix_collection_name
         if collection_name is None:
             collection_name = calculate_sha256(f)[:63]
         f.close()
@@ -323,7 +324,7 @@ def get_loader(filename: str, file_content_type: str, file_path: str):
     ]
 
     if file_ext == "pdf":
-        loader = PyMuPDFLoader.load(file_path)
+        loader = PyMuPDFLoader(file_path)
         # loader = PyPDFLoader(
         #     file_path, extract_images=app.state.config.PDF_EXTRACT_IMAGES
         # )
@@ -412,4 +413,4 @@ def calculate_sha256_string(string):
 
 
 if __name__ == "__main__":
-    uvicorn.run(host="127.0.0.1", port=9999, app=app)
+    uvicorn.run(host="0.0.0.0", port=9999, app=app)

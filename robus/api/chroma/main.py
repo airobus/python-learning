@@ -19,7 +19,7 @@ from langchain_core.retrievers import BaseRetriever
 from langchain_text_splitters import CharacterTextSplitter
 
 from robus.config import SUPABASE, ms_llm, cf_llm, qw_llm, qw_llm_openai, groq_llm_openai, conversationChain, \
-    chroma_retriever, embeddings, redis_chat_history, get_message_history, CHROMA_CLIENT, qw_embeddings
+    chroma_retriever, embeddings, CHROMA_CLIENT, qw_embeddings, fix_collection_name, zp_llm_openai
 from fastapi.responses import Response, StreamingResponse, JSONResponse
 from langchain.chains.conversation.memory import ConversationBufferMemory, ConversationSummaryMemory, \
     ConversationBufferWindowMemory, ConversationSummaryBufferMemory
@@ -154,7 +154,7 @@ class CusLineListOutputParser(BaseOutputParser[List[str]]):
 def ask(body: dict):
     question = body['question']
     user_id = 888
-    collection_name = 'yxk-know-index'
+    collection_name = fix_collection_name
 
     system_prompt = get_prompt_cn()
 
@@ -194,7 +194,7 @@ def ask(body: dict):
     # )
 
     ensemble_retriever = EnsembleRetriever(
-        retrievers=[bm25_retriever, chroma_retriever], weights=[0.5, 0.5]
+        retrievers=[bm25_retriever, chroma_retriever], weights=[0.9, 0.5]
     )
 
     # compressor = JinaRerank()
@@ -215,7 +215,7 @@ def ask(body: dict):
                 history=memory.load_memory_variables
             )
             | prompt
-            | qw_llm_openai
+            | zp_llm_openai
             | StrOutputParser()
     )
 
@@ -484,7 +484,7 @@ def ask(body: dict):
 @app.post("/stream/rag/ask")
 def ask(body: dict):
     question = body['question']
-    # collection_name = 'yxk-know-index'
+    # collection_name = fix_collection_name
 
     rag_chain = (
             {
