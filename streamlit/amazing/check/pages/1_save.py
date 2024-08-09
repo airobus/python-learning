@@ -34,7 +34,8 @@ def get_user_data(user, page_num, page_size=10):
 
 # 新增数据页面
 st.title("新增数据")
-user = st.text_input("用户名")
+# user = st.text_input("用户名")
+user = st.selectbox("用户", ["家帝王蟹", "猛男"])
 date = st.date_input("日期", datetime.date.today())
 amount = st.number_input("金额", min_value=0.0, step=0.01)
 category = st.selectbox("类别", ["食物", "交通", "娱乐", "其他"])
