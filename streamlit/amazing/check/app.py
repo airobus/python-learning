@@ -1,194 +1,36 @@
 import streamlit as st
-import pandas as pd
-import datetime
-from pymongo import MongoClient
 
-# 如果连接不存在，创建连接
-if "mongo_client" not in st.session_state:
-    uri = st.secrets['URI']
-    st.session_state.mongo_client = MongoClient(uri)
+st.set_page_config(
+    page_title="DAY DAY HAPPY",
+    page_icon="👋",
+)
 
-# 获取数据库和集合
-db = st.session_state.mongo_client["robus_database"]
-collection = db["robus_collection"]
+"""
+# AI Image Generation and Vision Demos
 
-# 页面选择
-page = st.sidebar.selectbox("选择页面", ["数据统计", "新增数据"])
+👋 Hey there! Welcome to the [Cloudflare Workers AI](https://developers.cloudflare.com/workers-ai) demo apps.
 
+These demos are built in [Streamlit](https://streamlit.io).
 
-# 定义函数用于保存数据到 MongoDB
-def save_data(user, date, amount, category, note, custom_keys):
-    record = {
-        'user': user,
-        'date': datetime.datetime.combine(date, datetime.datetime.min.time()),
-        'amount': amount,
-        'category': category,
-        'note': note,
-        **custom_keys
-    }
-    collection.insert_one(record)
+I want you to explore and play with what is possible. You have to see this stuff to to believe it.
 
+👈 Choose from the demos here on the left
 
-# 定义多用户隔离功能，支持分页和排序
-def get_user_data(user, page_num, page_size=10):
-    skip = (page_num - 1) * page_size
-    cursor = collection.find({'user': user}).sort('date', -1).skip(skip).limit(page_size)
-    return list(cursor)
+In **Prompting**, you'll get to create a realistic image using our [current models](https://developers.cloudflare.com/workers-ai/models/). (We're always adding more!)
+You'll also receive handy tips on how to make your prompting better.
 
+In **Masking**, you'll be able to use a canvas to replace portions of an image with new generated images.
 
-# 获取用户数据总数
-def get_user_data_count(user):
-    return collection.count_documents({'user': user})
+In **Seeing**, you can upload a photo and ask questions about it.
 
+Please share what you build with us [@CloudflareDev](https://twitter.com/cloudflaredev) and come hang out in our [Discord](https://discord.cloudflare.com)!
 
-# 自定义CSS样式
-st.markdown("""
-<style>
-    .stDataFrame {
-        font-size: 12px;
-        width: 100% !important;
-    }
-    .data-container {
-        border: 1px solid #ccc;
-        border-radius: 5px;
-        padding: 10px;
-        margin-bottom: 10px;
-    }
-    .stButton>button {
-        width: 100%;
-    }
-</style>
-""", unsafe_allow_html=True)
+"""
 
-# 数据统计页面
-if page == "数据统计":
-    st.title("数据统计")
-    user = st.sidebar.text_input("输入用户名以查看统计")
+st.video("https://youtu.be/8SnrvAYAJ4Q")
 
-    if user:
-        # 获取用户数据总数
-        total_records = get_user_data_count(user)
+"""
+---
 
-        if total_records > 0:
-            # 计算总页数
-            total_pages = (total_records + 9) // 10  # 向上取整
-
-            # 使用标签页来展示不同的统计视图
-            tab1, tab2, tab3, tab4 = st.tabs(["按日统计", "按月统计", "按年统计", "全部数据"])
-
-            # 获取所有数据用于统计
-            all_data = list(collection.find({'user': user}))
-            df = pd.DataFrame(all_data)
-            df['_id'] = df['_id'].astype(str)
-            df['date'] = pd.to_datetime(df['date'])
-            df.set_index('date', inplace=True)
-
-            with tab1:
-                st.header("按日统计")
-                daily_expense = df.resample('D').sum(numeric_only=True)['amount']
-                st.line_chart(daily_expense)
-
-            with tab2:
-                st.header("按月统计")
-                monthly_expense = df.resample('M').sum(numeric_only=True)['amount']
-                st.line_chart(monthly_expense)
-
-            with tab3:
-                st.header("按年统计")
-                yearly_expense = df.resample('Y').sum(numeric_only=True)['amount']
-                st.line_chart(yearly_expense)
-
-            with tab4:
-                st.header("全部数据")
-
-                # 初始化当前页码
-                if 'current_page' not in st.session_state:
-                    st.session_state.current_page = 1
-
-                # 创建一个容器来包含数据和分页按钮
-                with st.container():
-                    data_container = st.container()
-
-                    with data_container:
-                        # 显示当前页码和总页数
-                        st.write(f"当前第 {st.session_state.current_page} 页，共 {total_pages} 页")
-
-                        # 获取当前页的数据
-                        page_data = get_user_data(user, st.session_state.current_page)
-                        if page_data:
-                            df_page = pd.DataFrame(page_data)
-                            df_page['_id'] = df_page['_id'].astype(str)
-                            df_page['date'] = pd.to_datetime(df_page['date'])
-
-                            # 调整列的顺序和显示
-                            columns_to_display = ['date', 'amount', 'category', 'note'] + [col for col in
-                                                                                           df_page.columns if
-                                                                                           col not in ['_id', 'user',
-                                                                                                       'date', 'amount',
-                                                                                                       'category',
-                                                                                                       'note']]
-
-                            # 应用样式并显示表格，设置高度和宽度自适应
-                            st.dataframe(df_page[columns_to_display].style.set_table_styles(
-                                [{
-                                    'selector': 'table',
-                                    'props': [('width', '100%')]
-                                }]
-                            ), use_container_width=True)
-                        else:
-                            st.write("该页无数据。")
-
-                        # 添加分页按钮
-                        col1, col2, col3 = st.columns(3)
-                        with col1:
-                            if st.button("上一页") and st.session_state.current_page > 1:
-                                st.session_state.current_page -= 1
-                                st.experimental_rerun()
-
-                        with col2:
-                            st.write(f"第 {st.session_state.current_page} 页")
-
-                        with col3:
-                            if st.button("下一页") and st.session_state.current_page < total_pages:
-                                st.session_state.current_page += 1
-                                st.experimental_rerun()
-
-                    # 为容器添加CSS类
-                    st.markdown(f"""
-                        <style>
-                            div.stContainer > div:nth-child({data_container.id}) {{
-                                border: 1px solid #ccc;
-                                border-radius: 5px;
-                                padding: 10px;
-                                margin-bottom: 10px;
-                            }}
-                        </style>
-                    """, unsafe_allow_html=True)
-        else:
-            st.write("该用户暂无数据。")
-
-# 新增数据页面
-elif page == "新增数据":
-    st.title("新增数据")
-    user = st.text_input("用户名")
-    date = st.date_input("日期", datetime.date.today())
-    amount = st.number_input("金额", min_value=0.0, step=0.01)
-    category = st.selectbox("类别", ["食物", "交通", "娱乐", "其他"])
-    note = st.text_area("备注")
-
-    # 自定义 key
-    custom_keys = {}
-    st.write("自定义 key:")
-    key_count = st.number_input("自定义 key 数量", min_value=0, max_value=10, step=1)
-    for i in range(int(key_count)):
-        key = st.text_input(f"Key {i + 1} 名称")
-        value = st.text_input(f"Key {i + 1} 值")
-        if key and value:
-            custom_keys[key] = value
-
-    if st.button("保存"):
-        if user:
-            save_data(user, date, amount, category, note, custom_keys)
-            st.success("数据已保存!")
-        else:
-            st.error("请填写用户名。")
+Built with 🧡 [Craig (@craigsdennis)](https://twitter.com/craigsdennis)
+"""
