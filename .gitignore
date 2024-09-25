@@ -35,6 +35,8 @@ log/*
 .env
 /work/*.sql
 /work/*.txt
+/work/*.xlsx
+/work/*.md
 /crawler/downloads
 /robus/.env
 /langchain/file/
