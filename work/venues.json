@@ -1,0 +1,67 @@
+[
+    {
+        "org_type": 12,
+        "category_id": 208,
+        "category": "儿童之家",
+        "title": "开欣社区妇女儿童活动中心",
+        "address": "杭州市萧山区宁围街道开欣社区通惠北路与建设一路红路灯口雅棠轩小区1871-1873号",
+        "city": "杭州市",
+        "county": "萧山区",
+        "longitude": 120.283943,
+        "latitude": 30.193591,
+        "open_time": "周一至周日8:30-17：00",
+        "picture": "/whyx20221018/99/7907.jpg"
+    },
+    {
+        "org_type": 15,
+        "category_id": 211,
+        "category": "文化礼堂",
+        "title": "文昌镇王家源村文化礼堂",
+        "address": "杭州市淳安县文昌镇王家源村",
+        "city": "杭州市",
+        "county": "淳安县",
+        "longitude": 119.230234,
+        "latitude": 29.783364,
+        "open_time": "09:00-17:00",
+        "picture": "/whyx20221018/99/14914.jpg"
+    },
+    {
+        "org_type": 17,
+        "category_id": 219,
+        "category": "机房/广播站",
+        "title": "机房",
+        "address": "杭州市丁桥景园南苑24号",
+        "city": "杭州市",
+        "county": "钱塘区",
+        "longitude": 120.233774,
+        "latitude": 30.349645,
+        "open_time": "不开放",
+        "picture": "/whyx20221018/98/7999.jpg"
+    },
+    {
+        "org_type": 18,
+        "category_id": 213,
+        "category": "文化服务点/阅览室",
+        "title": "公共数字文化服务点",
+        "address": "杭州市西溪路618号2幢",
+        "city": "杭州市",
+        "county": "西湖区",
+        "longitude": 120.0911273,
+        "latitude": 30.2628683,
+        "open_time": NaN,
+        "picture": "/whyx20221018/98/7962.jpg"
+    },
+    {
+        "org_type": 16,
+        "category_id": 212,
+        "category": "文化家园",
+        "title": "藕湖浜社区文化家园",
+        "address": "杭州市萧山区城厢街道藕湖浜社区新桥园小区6幢",
+        "city": "杭州市",
+        "county": "萧山区",
+        "longitude": 120.278089,
+        "latitude": 30.156414,
+        "open_time": "周一至周五8:30-11:00；13:30-16:30",
+        "picture": "/whyx20221018/98/7470.jpg"
+    }
+]
